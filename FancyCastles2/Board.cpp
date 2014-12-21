@@ -12,6 +12,7 @@ Board::Board():
 
 int Board::GetNextHexagonalNumber(const int& curNumTiles) const
 {
+	//equation from wikipedia on centered hexagonal numbers
 	int n = 2;
 	int hexagonalNumber = 7;
 	while (curNumTiles > hexagonalNumber)

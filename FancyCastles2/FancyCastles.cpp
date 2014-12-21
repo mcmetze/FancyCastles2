@@ -65,6 +65,8 @@ public:
 
 	void GetVertexColorFromType(GLfloat& r, GLfloat& g, GLfloat& b, const ResourceType& tileType)
 	{
+		//placeholder method to verify
+
 		r = g = b = 0.0;
 		switch (tileType)
 		{
@@ -94,11 +96,10 @@ public:
 
 	void GetUniqueTileColor(GLfloat& r, GLfloat& g, GLfloat& b, const int& index)
 	{
-		const int offset = 100;
-		int ID = index + offset;
-		unsigned char redVal  =	 (ID & 0x000000FF);
-		unsigned char blueVal =	 (ID & 0x0000FF00);
-		unsigned char greenVal = (ID & 0x00FF0000);
+		//convert the tile's index within the board to an RGB color
+		unsigned char redVal  =	 (index & 0x000000FF);
+		unsigned char blueVal =  (index & 0x0000FF00);
+		unsigned char greenVal = (index & 0x00FF0000);
 
 		r = redVal / 255.f;
 		g = (greenVal >> 8) / 255.f;
@@ -110,23 +111,28 @@ public:
 
 	void SetupHexVerts()
 	{
+		//create a hex shape to reuse on the board
 		mHexSize = 1;
 		HexGeometry hexGeo(mHexSize);
 		hexGeo.CreateHex();
 		auto hexVerts = hexGeo.GetHexVerts();
 
+		//gives a little space between tiles
 		const float boarder = 0.01f;
 		mHexHeight = hexGeo.GetHeight() + boarder;
 		mHexWidth = hexGeo.GetWidth() + boarder;
 
+		//used for making the board fit on the screen
 		mTilesHeight = mHexSize * (mNumTiles / 5);
 
 		for (auto tileIndex = 0; tileIndex < mNumTiles; ++tileIndex)
 		{
+			//get a tile from the board and convert the axial coordinate to cartesian
 			auto position = mGameBoard->GetTileCoord(tileIndex);
 			GLfloat x = mHexWidth * position.r + mHexWidth / 2.f * position.q;
 			GLfloat y = 0.75f*mHexHeight * position.q;
 			
+			//translate each vertex of the hex and add it to the buffer
 			for (auto curVert : hexVerts)
 			{
 				mVertexInfo.push_back(x + curVert.x);
@@ -134,6 +140,8 @@ public:
 			}
 		}
 
+		//naive trianglulation of each tile 
+		//used for the element/index buffer
 		for (auto tileIndex = 0; tileIndex < mNumTiles; ++tileIndex)
 		{
 			GLuint firstTriVertIndex = tileIndex * 6;
@@ -154,6 +162,7 @@ public:
 		GLfloat r, g, b;
 		for (auto tileIndex = 0; tileIndex < mNumTiles; ++tileIndex)
 		{
+			//TODO: use texture instead of flat color
 			auto tileType = mGameBoard->GetTileType(tileIndex);
 			GetVertexColorFromType(r, g, b, tileType);
 			for (auto i = 0; i < 6; ++i)
@@ -163,6 +172,7 @@ public:
 				mColorInfo.push_back(b);
 			}
 
+			//used for picking later
 			GetUniqueTileColor(r, g, b, tileIndex);
 			for (auto i = 0; i < 6; ++i)
 			{
@@ -192,6 +202,7 @@ public:
 		glBindFragDataLocation(mShaderProgram, 0, "outColor");
 		glLinkProgram(mShaderProgram);
 
+		//check errors
 		GLint success = 0;
 		GLchar ErrorLog[1024] = { 0 };
 		glGetProgramiv(mShaderProgram, GL_LINK_STATUS, &success);
@@ -222,6 +233,7 @@ public:
 		glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*mVertexInfo.size(), mVertexInfo.data(), GL_STATIC_DRAW);
 
+		// Create a separate buffer for the color information
 		GLuint colorBuffer;
 		glGenBuffers(1, &colorBuffer);
 		glBindBuffer(GL_ARRAY_BUFFER, colorBuffer);
@@ -244,6 +256,7 @@ public:
 		glEnableVertexAttribArray(colAttrib);
 		glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, 0, 0);
 
+		//just use ortho for now, adjust screen based on board size and aspect
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
 		glOrtho(-(ASPECT_RATIO*mTilesHeight), ASPECT_RATIO*mTilesHeight, -mTilesHeight, mTilesHeight, -1.0, 1.0);
@@ -254,23 +267,27 @@ public:
 		double mouseY = 0.0;
 		while (!glfwWindowShouldClose(window))
 		{
-
+			// flag the click for release
 			if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
 			{
 				leftMousePressed = true;
 			}
 			
+			// released from a left mouse click, do the first render pass for the pick operation
 			if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE && leftMousePressed)
 			{
 				leftMousePressed = false;
 				glfwGetCursorPos(window, &mouseX, &mouseY);
+				mouseY = WINDOW_HEIGHT - mouseY;
 
+				//clear to white because black is generated in the unique tile colors for index 0
 				glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 				glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
 				glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
 
+				//use the color buffer with the unique tile colors
 				mColorBufferPtr = &mColorIDs;
 				glBindBuffer(GL_ARRAY_BUFFER, colorBuffer);
 				glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*(mColorBufferPtr->size()), mColorBufferPtr->data(), GL_DYNAMIC_DRAW);
@@ -284,6 +301,7 @@ public:
 
 				glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
+				//read the pixel at the mouse position and look up the tile that maps to this color in the color/tile map
 				unsigned char data[4];
 				glReadPixels(static_cast<GLint>(floor(mouseX)), static_cast<GLint>(floor(mouseY)), 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, data);
 				unsigned int rgbVal = data[0] | (data[1] << 8) | (data[2] << 16);
@@ -321,7 +339,7 @@ public:
 				}
 			}
 
-			// Clear the screen to black
+			//second render pass with the real colors
 			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -335,6 +353,7 @@ public:
 
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBuffer);
 			glDrawElements(GL_TRIANGLES, mVertIndices.size(), GL_UNSIGNED_INT, 0);
+
 
 			glfwSwapBuffers(window);
 			glfwPollEvents();
@@ -413,7 +432,7 @@ int main(void)
 	glfwSetKeyCallback(window, key_callback);
 
 	{
-		FancyCastlesView gameInstance(6);
+		FancyCastlesView gameInstance(15);
 		gameInstance.RenderLoop(window);
 	}
 
