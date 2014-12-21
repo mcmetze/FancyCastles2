@@ -5,20 +5,21 @@
 
 Board::Board():
 	  mNumTiles(0)
+	, mNumLayers(0)
 	, mBoard()
 {
 
 }
 
-int Board::GetNextHexagonalNumber(const int& curNumTiles) const
+int Board::GetNextHexagonalNumber(const int& curNumTiles) 
 {
 	//equation from wikipedia on centered hexagonal numbers
-	int n = 2;
+	mNumLayers = 2;
 	int hexagonalNumber = 7;
 	while (curNumTiles > hexagonalNumber)
 	{
-		++n;
-		hexagonalNumber = (3 * n)*(n - 1) + 1;
+		++mNumLayers;
+		hexagonalNumber = (3 * mNumLayers)*(mNumLayers - 1) + 1;
 	}
 
 	return hexagonalNumber;
@@ -70,16 +71,16 @@ void Board::CreateTiles(int numTilesPerType)
 
 void Board::ConnectTiles(TileList& tilesForBoard)
 {
+	mNumLayers -= 1;
 	int tileIndex = 0;
-	int numLayers = (mNumTiles - 1) / 12;
 	int startR = 0;
-	int startQ = -numLayers;
+	int startQ = -mNumLayers;
 	
 	//compute the axial coordinates for the top half of the board 
 	while (startQ <= 0)
 	{
 		int curR = startR;
-		while (curR <= numLayers)
+		while (curR <= mNumLayers)
 		{
 			AxialCoord curLocation(curR++, startQ);
 			mBoard[tileIndex++] = curLocation;
@@ -89,10 +90,10 @@ void Board::ConnectTiles(TileList& tilesForBoard)
 	}
 
 	//compute the axial coordinates for the bottom half of the board
-	int endR = numLayers-1;
-	while (startQ <= numLayers)
+	int endR = mNumLayers - 1;
+	while (startQ <= mNumLayers)
 	{
-		int curR = -numLayers;
+		int curR = -mNumLayers;
 		while (curR <= endR)
 		{
 			AxialCoord curLocation(curR++, startQ);

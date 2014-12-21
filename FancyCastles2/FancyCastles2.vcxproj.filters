@@ -35,10 +35,10 @@
     <ClInclude Include="..\..\FancyCastles\FancyCastles\Hex.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\FancyCastles\FancyCastles\Board.h">
+    <ClInclude Include="HexGeometry.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="HexGeometry.h">
+    <ClInclude Include="Board.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

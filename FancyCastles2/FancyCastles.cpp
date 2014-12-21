@@ -50,6 +50,7 @@ public:
 		, mHexWidth(0)
 		, mTilesHeight(0)
 		, mNumTiles(0)
+		, mNumPlayers(numPlayers)
 		, mGameBoard(nullptr)
 		, mColorBufferPtr(nullptr)
 	{
@@ -123,14 +124,14 @@ public:
 		mHexWidth = hexGeo.GetWidth() + boarder;
 
 		//used for making the board fit on the screen
-		mTilesHeight = mHexSize * (mNumTiles / 5);
+		mTilesHeight = mHexSize * (mNumTiles / mNumPlayers+1);
 
 		for (auto tileIndex = 0; tileIndex < mNumTiles; ++tileIndex)
 		{
 			//get a tile from the board and convert the axial coordinate to cartesian
 			auto position = mGameBoard->GetTileCoord(tileIndex);
 			GLfloat x = mHexWidth * position.r + mHexWidth / 2.f * position.q;
-			GLfloat y = 0.75f*mHexHeight * position.q;
+			GLfloat y = -0.75f*mHexHeight * position.q;
 			
 			//translate each vertex of the hex and add it to the buffer
 			for (auto curVert : hexVerts)
@@ -315,7 +316,7 @@ public:
 				{
 					int tileID = mColorToTileMap[rgbVal];
 					printf("found tile %i\n", tileID);
-
+					printf("position {%i, %i}\n", mGameBoard->GetTileCoord(tileID).r, mGameBoard->GetTileCoord(tileID).q);
 					switch (mGameBoard->GetTileType(tileID))
 					{
 					case WATER:
@@ -378,6 +379,7 @@ private:
 	float mHexHeight;
 	float mHexWidth;
 
+	int mNumPlayers;
 	int mTilesHeight;
 	size_t mNumTiles;
 	std::unique_ptr<Board> mGameBoard;
@@ -414,6 +416,11 @@ int main(void)
 	if (!glfwInit())
 		exit(EXIT_FAILURE);
 
+	//glfwWindowHint(GLFW_SAMPLES, 4); // 4x antialiasing
+	//glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3); // We want OpenGL 3.3
+	//glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	//glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // To make MacOS happy; should not be needed
+	//glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); //We don't want the old OpenGL 
 
 	GLFWwindow* window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Fancy Castles", NULL, NULL);
 	if (!window)
@@ -432,7 +439,7 @@ int main(void)
 	glfwSetKeyCallback(window, key_callback);
 
 	{
-		FancyCastlesView gameInstance(15);
+		FancyCastlesView gameInstance(6);
 		gameInstance.RenderLoop(window);
 	}
 

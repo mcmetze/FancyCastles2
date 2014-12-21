@@ -78,8 +78,8 @@
     <ClCompile Include="HexGeometry.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\FancyCastles\FancyCastles\Board.h" />
     <ClInclude Include="..\..\FancyCastles\FancyCastles\Hex.h" />
+    <ClInclude Include="Board.h" />
     <ClInclude Include="HexGeometry.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

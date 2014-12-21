@@ -28,9 +28,11 @@ private:
 	void ShuffleTiles(TileList& tilesToShuffle);
 	void ConnectTiles(TileList& tilesForBoard);
 
-	int GetNextHexagonalNumber(const int& curNumTiles) const;
+	int GetNextHexagonalNumber(const int& curNumTiles);
 
 	size_t mNumTiles;
+	int mNumLayers;
+
 	TileMap mBoard;
 	TileList mTiles;
 };
