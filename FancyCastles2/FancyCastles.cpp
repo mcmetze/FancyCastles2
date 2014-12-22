@@ -223,6 +223,31 @@ public:
 		glUseProgram(mShaderProgram);
 	}
 
+	void PrintTileInfo(int tileID)
+	{
+		printf("position {%i, %i}\n", mGameBoard->GetTileCoord(tileID).r, mGameBoard->GetTileCoord(tileID).q);
+		switch (mGameBoard->GetTileType(tileID))
+		{
+		case WATER:
+			printf("water\n");
+			break;
+		case GRASS:
+			printf("grass\n");
+			break;
+		case WHEAT:
+			printf("wheat\n");
+			break;
+		case ORE:
+			printf("ore\n");
+			break;
+		case TREE:
+			printf("tree\n");
+			break;
+		default:
+			break;
+		}
+	}
+
 	void RenderLoop(GLFWwindow* window)
 	{
 		SetupHexVerts();
@@ -263,6 +288,7 @@ public:
 		glOrtho(-(ASPECT_RATIO*mTilesHeight), ASPECT_RATIO*mTilesHeight, -mTilesHeight, mTilesHeight, -1.0, 1.0);
 		glMatrixMode(GL_MODELVIEW);
 
+		bool colorsBufferDirty = false;
 		bool leftMousePressed = false;
 		double mouseX = 0.0;
 		double mouseY = 0.0;
@@ -278,6 +304,7 @@ public:
 			if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE && leftMousePressed)
 			{
 				leftMousePressed = false;
+				colorsBufferDirty = true;
 				glfwGetCursorPos(window, &mouseX, &mouseY);
 				mouseY = WINDOW_HEIGHT - mouseY;
 
@@ -285,14 +312,10 @@ public:
 				glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-				glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
-				glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
-
 				//use the color buffer with the unique tile colors
 				mColorBufferPtr = &mColorIDs;
 				glBindBuffer(GL_ARRAY_BUFFER, colorBuffer);
 				glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*(mColorBufferPtr->size()), mColorBufferPtr->data(), GL_DYNAMIC_DRAW);
-				glEnableVertexAttribArray(colAttrib);
 
 				glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBuffer);
 				glDrawElements(GL_TRIANGLES, mVertIndices.size(), GL_UNSIGNED_INT, 0);
@@ -304,7 +327,7 @@ public:
 
 				//read the pixel at the mouse position and look up the tile that maps to this color in the color/tile map
 				unsigned char data[4];
-				glReadPixels(static_cast<GLint>(floor(mouseX)), static_cast<GLint>(floor(mouseY)), 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, data);
+				glReadPixels(static_cast<GLint>(mouseX), static_cast<GLint>(mouseY), 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, data);
 				unsigned int rgbVal = data[0] | (data[1] << 8) | (data[2] << 16);
 
 				if (mColorToTileMap.find(rgbVal) == mColorToTileMap.end())
@@ -316,27 +339,11 @@ public:
 				{
 					int tileID = mColorToTileMap[rgbVal];
 					printf("found tile %i\n", tileID);
-					printf("position {%i, %i}\n", mGameBoard->GetTileCoord(tileID).r, mGameBoard->GetTileCoord(tileID).q);
-					switch (mGameBoard->GetTileType(tileID))
-					{
-					case WATER:
-						printf("water\n");
-						break;
-					case GRASS:
-						printf("grass\n");
-						break;
-					case WHEAT:
-						printf("wheat\n");
-						break;
-					case ORE:
-						printf("ore\n");
-						break;
-					case TREE:
-						printf("tree\n");
-						break;
-					default:
-						break;
-					}
+					PrintTileInfo(tileID);
+					AxialCoord position = mGameBoard->GetTileCoord(tileID);
+					GLfloat x = mHexWidth * position.r + mHexWidth / 2.f * position.q;
+					GLfloat y = -0.75f*mHexHeight * position.q;
+
 				}
 			}
 
@@ -347,14 +354,16 @@ public:
 			glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
 			glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
 		
-			mColorBufferPtr = &mColorInfo;
-			glBindBuffer(GL_ARRAY_BUFFER, colorBuffer);
-			glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*(mColorBufferPtr->size()), mColorBufferPtr->data(), GL_DYNAMIC_DRAW);
-			glEnableVertexAttribArray(colAttrib);
+			if (colorsBufferDirty)
+			{
+				colorsBufferDirty = false;
+				mColorBufferPtr = &mColorInfo;
+				glBindBuffer(GL_ARRAY_BUFFER, colorBuffer);
+				glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*(mColorBufferPtr->size()), mColorBufferPtr->data(), GL_DYNAMIC_DRAW);
+			}
 
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBuffer);
 			glDrawElements(GL_TRIANGLES, mVertIndices.size(), GL_UNSIGNED_INT, 0);
-
 
 			glfwSwapBuffers(window);
 			glfwPollEvents();
@@ -383,7 +392,7 @@ private:
 	int mTilesHeight;
 	size_t mNumTiles;
 	std::unique_ptr<Board> mGameBoard;
-
+	
 	std::map<unsigned int, int> mColorToTileMap;
 
 	std::vector<GLfloat>* mColorBufferPtr;
