@@ -21,9 +21,6 @@
     <ClCompile Include="Hex.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="HexGeometry.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Board.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -32,13 +29,10 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\FancyCastles\FancyCastles\Hex.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="HexGeometry.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Board.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Hex.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

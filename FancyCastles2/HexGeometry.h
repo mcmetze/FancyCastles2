@@ -1,3 +1,6 @@
+#ifndef METZE_HEXGEO_H
+#define METZE_HEXGEO_H
+
 #include <vector>
 
 class HexGeometry
@@ -28,3 +31,5 @@ private:
 	float mWidth;		//distance from edge to edge horizontally
 	float mHeight;		//distance from top vertex to bottom vertex
 };
+
+#endif

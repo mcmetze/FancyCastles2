@@ -1,3 +1,6 @@
+#ifndef METZE_HEX_H
+#define METZE_HEX_H
+
 #include <vector>
 #include <memory>
 #include <map>
@@ -27,3 +30,5 @@ private:
 	//Player* tileOwner;
 	//std::vector<Building*> buildings;
 };
+
+#endif

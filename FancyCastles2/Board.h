@@ -1,3 +1,6 @@
+#ifndef METZE_BOARD_H
+#define METZE_BOARD_H
+
 #include "Hex.h"
 
 struct AxialCoord
@@ -36,3 +39,5 @@ private:
 	TileMap mBoard;
 	TileList mTiles;
 };
+
+#endif
