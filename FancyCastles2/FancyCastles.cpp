@@ -5,9 +5,10 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <fstream>
 #include <iostream>
 #include <assert.h>
-//#include <glm.hpp>
+#include <glm.hpp>
 
 #include <vld.h>
 
@@ -17,88 +18,6 @@
 static const float WINDOW_WIDTH = 1366;
 static const float WINDOW_HEIGHT = 768;
 static const float ASPECT_RATIO = WINDOW_WIDTH / WINDOW_HEIGHT;
-
-// Shader sources
-const GLchar* vertexSource =
-"#version 330 \n"
-"in vec2 position;"
-"in vec3 color;"
-"out vec3 vColor;"
-"void main() {"
-"   vColor = color;"
-"   gl_Position = vec4(position, 0.0, 1.0);"
-"}";
-
-const GLchar* geometrySource =
-"#version 330\n"
-"#define PI 3.14159265358979323846 \n"
-" layout(points) in;"
-" layout(triangle_strip, max_vertices = 12) out;"
-" in vec3 vColor[];"
-" uniform vec2 selectedPoint;"
-" out vec3 fColor;"
-" out vec2 fTexcoord;"
-" void main() "
-" {"
-"       vec2 texc[6] = vec2[](vec2(0.0, 0.0), "
-"                             vec2(0.0, 0.0), "
-"                             vec2(0.0, 0.0), "
-"                             vec2(0.0, 0.0), "
-"                             vec2(0.0, 0.0), "
-"                             vec2(0.0, 0.0)); "
-"		float w = 1366.f/100.f;"
-"		float h = 768.f/100.f;"
-"		vec2 verts[6]; "
-"		for (int corner = 0; corner < 6; corner++)"
-"		{ "
-"			float angle = 2.0 * PI / 6.0 * (corner + 0.5); "
-"			float cornerX = gl_in[0].gl_Position.x + cos(angle);	"
-"			float cornerY = gl_in[0].gl_Position.y + sin(angle); "
-"			verts[corner] = vec2(cornerX/w, cornerY/h); "
-"		} "
-"       if (selectedPoint.x == gl_in[0].gl_Position.x "
-"         && selectedPoint.y == gl_in[0].gl_Position.y )"
-"       { "
-"           texc = vec2[](vec2(1.0, 0.75), "
-"                  vec2(0.5, 1.0), "
-"                  vec2(0.0, 0.75), "
-"                  vec2(0.0, 0.25), "
-"                  vec2(0.5, 0.0), "
-"                  vec2(1.0, 0.25)); "
-"       }"
-"		fColor = vColor[0];"
-"       int curVert = 0;"
-"       for(int triangle = 0; triangle < 4; triangle++) "
-"       {"
-"			gl_Position =  vec4(verts[0].xy, 0.0, 1.0); "
-"           fTexcoord = texc[0]; "
-"			EmitVertex(); "
-"			gl_Position =  vec4(verts[curVert+1].xy, 0.0, 1.0); "
-"           fTexcoord = texc[curVert+1]; "
-"			EmitVertex(); "
-"			gl_Position =  vec4(verts[curVert+2].xy, 0.0, 1.0); "
-"           fTexcoord = texc[curVert+2]; "
-"			EmitVertex(); "
-"           curVert++; "
-"		} "
-"		EndPrimitive(); "
-"}";
-
-const GLchar* fragmentSource =
-"#version 330 \n"
-"in vec3 fColor;"
-"in vec2 fTexcoord;"
-"out vec4 fragColor;"
-"uniform sampler2D tileOutlineTex;"
-"void main() {"
-"   vec4 outlineColor = texture(tileOutlineTex, fTexcoord);"
-"   if(outlineColor.a == 0)"
-"   { "
-"       outlineColor = vec4(fColor, 1.0);"
-"   }"
-"   fragColor = outlineColor; "
-"}";
-
 
 class FancyCastlesView
 {
@@ -113,6 +32,9 @@ public:
 		, mNumPlayers(numPlayers)
 		, mGameBoard(nullptr)
 		, mColorBufferPtr(nullptr)
+		, mLastKeyPress(NO_KEY_PRESS)
+		, mLastMouseClick(NO_MOUSE_CLICK)
+		, mDoPick(false)
 	{
 		CreateGameBoard(numPlayers);
 	}
@@ -169,23 +91,44 @@ public:
 		mColorToTileMap[rgbVal] = index;
 	}
 
+	void PrintTileInfo(int tileID)
+	{
+		printf("position {%i, %i}\n", mGameBoard->GetTileCoord(tileID).r, mGameBoard->GetTileCoord(tileID).q);
+		switch (mGameBoard->GetTileType(tileID))
+		{
+		case WATER:
+			printf("water\n");
+			break;
+		case GRASS:
+			printf("grass\n");
+			break;
+		case WHEAT:
+			printf("wheat\n");
+			break;
+		case ORE:
+			printf("ore\n");
+			break;
+		case TREE:
+			printf("tree\n");
+			break;
+		default:
+			break;
+		}
+	}
+
 	void SetupTileColors()
 	{
 		GLfloat r, g, b;
-		for (auto tileIndex = 0; tileIndex < mNumTiles; ++tileIndex)
+		for (size_t tileIndex = 0; tileIndex < mNumTiles; ++tileIndex)
 		{
 			//TODO: use textures
 			auto tileType = mGameBoard->GetTileType(tileIndex);
 			GetVertexColorFromType(r, g, b, tileType);
-			mColorInfo.push_back(r);
-			mColorInfo.push_back(g);
-			mColorInfo.push_back(b);
+			mColorInfo.push_back(glm::vec3(r, g, b));
 
 			//used for picking later
 			GetUniqueTileColor(r, g, b, tileIndex);
-			mColorIDs.push_back(r);
-			mColorIDs.push_back(g);
-			mColorIDs.push_back(b);
+			mColorIDs.push_back(glm::vec3(r, g, b));
 		}
 	}
 
@@ -203,15 +146,40 @@ public:
 
 	void SetupHexVerts()
 	{
-		for (auto tileIndex = 0; tileIndex < mNumTiles; ++tileIndex)
+		for (size_t tileIndex = 0; tileIndex < mNumTiles; ++tileIndex)
 		{
 			//get a tile from the board and convert the axial coordinate to cartesian
 			GLfloat x, y; 
 			GetCartesianFromAxial(x, y, mGameBoard->GetTileCoord(tileIndex));
 
-			mVertexInfo.push_back(x);
-			mVertexInfo.push_back(y);
+			mVertexInfo.push_back(glm::vec2(x, y));
 		}
+	}
+
+	unsigned int DoPick(GLFWwindow* window)
+	{
+		double mouseX = 0.0;
+		double mouseY = 0.0;
+
+		glfwGetCursorPos(window, &mouseX, &mouseY);
+		mouseY = WINDOW_HEIGHT - mouseY;
+
+		//clear to white because black is generated in the unique tile colors for index 0
+		glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+		//use the color buffer with the unique tile colors
+		mColorBufferPtr = &mColorIDs;
+		RenderPass();
+
+		glFlush();
+		glFinish();
+
+		glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+		//read the pixel at the mouse position and convert it to the color ID we used to make the board with unique tile colors
+		unsigned char data[4];
+		glReadPixels(static_cast<GLint>(mouseX), static_cast<GLint>(mouseY), 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, data);
+
+		return (data[0] | (data[1] << 8) | (data[2] << 16));
 	}
 
 	GLuint LoadTexture(std::string imagePath)
@@ -252,22 +220,43 @@ public:
 		return true;
 	}
 
+	std::string LoadShaderFile(const char* filename)
+	{
+		std::ifstream in(filename);
+		if (in)
+		{
+			std::string contents;
+			in.seekg(0, std::ios::end);
+			contents.resize(in.tellg());
+			in.seekg(0, std::ios::beg);
+			in.read(&contents[0], contents.size());
+			in.close();
+			return(contents);
+		}
+		throw(errno);
+	}
+
 	void SetupShaders()
 	{
+		auto vertexSource = LoadShaderFile("vert.glsl");
+		auto geometrySource = LoadShaderFile("geo.glsl");
+		auto fragmentSource = LoadShaderFile("frag.glsl");
+		const GLchar* sources[] = { vertexSource.c_str(), geometrySource.c_str(), fragmentSource.c_str() };
+
 		// Create and compile the vertex shader
 		mVertexShader = glCreateShader(GL_VERTEX_SHADER);
-		glShaderSource(mVertexShader, 1, &vertexSource, NULL);
+		glShaderSource(mVertexShader, 1, &sources[0], NULL);
 		glCompileShader(mVertexShader);
 		CheckShader(mVertexShader);
 
 		GLuint mGeometryShader = glCreateShader(GL_GEOMETRY_SHADER);
-		glShaderSource(mGeometryShader, 1, &geometrySource, NULL);
+		glShaderSource(mGeometryShader, 1, &sources[1], NULL);
 		glCompileShader(mGeometryShader);
 		CheckShader(mGeometryShader);
 
 		// Create and compile the fragment shader
 		mFragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-		glShaderSource(mFragmentShader, 1, &fragmentSource, NULL);
+		glShaderSource(mFragmentShader, 1, &sources[2], NULL);
 		glCompileShader(mFragmentShader);
 		CheckShader(mFragmentShader);
 
@@ -284,45 +273,128 @@ public:
 		GLint success = 0;
 		GLchar ErrorLog[1024] = { 0 };
 		glGetProgramiv(mShaderProgram, GL_LINK_STATUS, &success);
-		if (success == 0) {
+		if (success == 0) 
+		{
 			glGetProgramInfoLog(mShaderProgram, sizeof(ErrorLog), NULL, ErrorLog);
 			fprintf(stderr, "Error linking shader program: '%s'\n", ErrorLog);
-			//exit(1);
+			exit(EXIT_FAILURE);
 		}
 
 		glValidateProgram(mShaderProgram);
 		glGetProgramiv(mShaderProgram, GL_VALIDATE_STATUS, &success);
-		if (!success) {
+		if (!success) 
+		{
 			glGetProgramInfoLog(mShaderProgram, sizeof(ErrorLog), NULL, ErrorLog);
 			fprintf(stderr, "Invalid shader program: '%s'\n", ErrorLog);
-			//exit(1);
+			exit(EXIT_FAILURE);
 		}
 		glUseProgram(mShaderProgram);
 	}
 
-	void PrintTileInfo(int tileID)
+	void SetupBuffers()
 	{
-		printf("position {%i, %i}\n", mGameBoard->GetTileCoord(tileID).r, mGameBoard->GetTileCoord(tileID).q);
-		switch (mGameBoard->GetTileType(tileID))
+		// Create a Vertex Buffer Object and copy the vertex data to it
+		glGenBuffers(1, &mVertexBuffer);
+		glBindBuffer(GL_ARRAY_BUFFER, mVertexBuffer);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2)*mVertexInfo.size(), mVertexInfo.data(), GL_STATIC_DRAW);
+
+		// Create a separate buffer for the color information
+		glGenBuffers(1, &mColorBuffer);
+		glBindBuffer(GL_ARRAY_BUFFER, mColorBuffer);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3)*mColorInfo.size(), mColorInfo.data(), GL_DYNAMIC_DRAW);
+		mColorBufferPtr = &mColorInfo;
+	}
+
+	void SetupAttributes()
+	{
+		// Specify the layout of the vertex data
+		mPosAttrib = glGetAttribLocation(mShaderProgram, "position");
+		glEnableVertexAttribArray(mPosAttrib);
+		glVertexAttribPointer(mPosAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
+
+		GLint colAttrib = glGetAttribLocation(mShaderProgram, "color");
+		glEnableVertexAttribArray(colAttrib);
+		glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, 0, 0);
+	}
+
+	void HandleKeyPress(GLFWwindow* window)
+	{
+		if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
 		{
-		case WATER:
-			printf("water\n");
-			break;
-		case GRASS:
-			printf("grass\n");
-			break;
-		case WHEAT:
-			printf("wheat\n");
-			break;
-		case ORE:
-			printf("ore\n");
-			break;
-		case TREE:
-			printf("tree\n");
-			break;
-		default:
-			break;
+			mLastKeyPress = LEFT_KEY;
 		}
+		if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_RELEASE && mLastKeyPress == LEFT_KEY)
+		{
+			mLastKeyPress = NO_KEY_PRESS;
+			mSelectedTilePos.r--;
+		}
+
+		if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+		{
+			mLastKeyPress = RIGHT_KEY;
+		}
+		if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_RELEASE && mLastKeyPress == RIGHT_KEY)
+		{
+			mLastKeyPress = NO_KEY_PRESS;
+			mSelectedTilePos.r++;
+		}
+
+		if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+		{
+			mLastKeyPress = UP_KEY;
+		}
+		if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_RELEASE && mLastKeyPress == UP_KEY)
+		{
+			mLastKeyPress = NO_KEY_PRESS;
+			mSelectedTilePos.q--;
+		}
+
+		if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+		{
+			mLastKeyPress = DOWN_KEY;
+		}
+		if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_RELEASE && mLastKeyPress == DOWN_KEY)
+		{
+			mLastKeyPress = NO_KEY_PRESS;
+			mSelectedTilePos.q++;
+		}
+	}
+
+	void HandleMouseClick(GLFWwindow* window)
+	{
+		// flag the click for release
+		if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
+		{
+			mLastMouseClick = LEFT_MOUSE;
+		}
+
+		// released from a left mouse click, flag this to do a pick
+		if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE && mLastMouseClick == LEFT_MOUSE)
+		{
+			mLastMouseClick = NO_MOUSE_CLICK;
+			mDoPick = true;
+		}
+	}
+
+	void RenderPass()
+	{
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+		glBindBuffer(GL_ARRAY_BUFFER, mColorBuffer);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3)*(mColorBufferPtr->size()), mColorBufferPtr->data(), GL_DYNAMIC_DRAW);
+
+		glDrawArrays(GL_POINTS, 0, mVertexInfo.size());
+	}
+
+	void Cleanup()
+	{
+		glDeleteProgram(mShaderProgram);
+		glDeleteShader(mGeometryShader);
+		glDeleteShader(mFragmentShader);
+		glDeleteShader(mVertexShader);
+
+		glDeleteBuffers(1, &mVertexBuffer);
+		glDeleteBuffers(1, &mColorBuffer);
 	}
 
 	void RenderLoop(GLFWwindow* window)
@@ -330,124 +402,29 @@ public:
 		SetupHexVerts();
 		SetupTileColors();
 
-		// Create a Vertex Buffer Object and copy the vertex data to it
-		GLuint vertexBuffer;
-		glGenBuffers(1, &vertexBuffer);
-		glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*mVertexInfo.size(), mVertexInfo.data(), GL_STATIC_DRAW);
-
-		// Create a separate buffer for the color information
-		GLuint colorBuffer;
-		glGenBuffers(1, &colorBuffer);
-		glBindBuffer(GL_ARRAY_BUFFER, colorBuffer);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*mColorInfo.size(), mColorInfo.data(), GL_DYNAMIC_DRAW);
-		mColorBufferPtr = &mColorInfo;
-
+		SetupBuffers();
 		SetupShaders();
+		SetupAttributes();
+
 		BindTexture(GL_TEXTURE0, LoadTexture("TileOutline.png"));
 		glUniform1i(glGetUniformLocation(mShaderProgram, "tileOutlineTex"), 0);
-		GLint selectedPointUniform = glGetUniformLocation(mShaderProgram, "selectedPoint");
+		mSelectedPointUniform = glGetUniformLocation(mShaderProgram, "selectedPoint");
 		mSelectedTilePos = AxialCoord(mNumTiles, mNumTiles);
 
-		// Specify the layout of the vertex data
-		GLint posAttrib = glGetAttribLocation(mShaderProgram, "position");
-		glEnableVertexAttribArray(posAttrib);
-		glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
-
-		GLint colAttrib = glGetAttribLocation(mShaderProgram, "color");
-		glEnableVertexAttribArray(colAttrib);
-		glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, 0, 0);
-
-		bool colorsBufferDirty = false;
-		bool leftMousePressed = false;
-		bool leftKeyPressed = false;
-		bool rightKeyPressed = false;
-		bool upKeyPressed = false;
-		bool downKeyPressed = false;
-
-		double mouseX = 0.0;
-		double mouseY = 0.0;
 		while (!glfwWindowShouldClose(window))
 		{
-			if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
+			HandleKeyPress(window);
+			HandleMouseClick(window);
+
+			if (mDoPick)
 			{
-				leftKeyPressed = true;
-			}
-			if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_RELEASE && leftKeyPressed)
-			{
-				leftKeyPressed = false;
-				mSelectedTilePos.r--;
-			}
+				//do the first render pass with the unique tile colors and check if the user clicked a tile
+				unsigned int rgbVal = DoPick(window);
 
-			if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
-			{
-				rightKeyPressed = true;
-			}
-			if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_RELEASE && rightKeyPressed)
-			{
-				rightKeyPressed = false;
-				mSelectedTilePos.r++;
-			}
-
-			if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-			{
-				upKeyPressed = true;
-			}
-			if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_RELEASE && upKeyPressed)
-			{ 
-				upKeyPressed = false;
-				mSelectedTilePos.q--;
-			}
-
-			if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-			{
-				downKeyPressed = true;
-			}
-			if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_RELEASE && downKeyPressed)
-			{
-				downKeyPressed = false;
-				mSelectedTilePos.q++;
-			}
-
-			// flag the click for release
-			if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
-			{
-				leftMousePressed = true;
-			}
-
-			// released from a left mouse click, do the first render pass for the pick operation
-			if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE && leftMousePressed)
-			{
-				leftMousePressed = false;
-				colorsBufferDirty = true;
-				glfwGetCursorPos(window, &mouseX, &mouseY);
-				mouseY = WINDOW_HEIGHT - mouseY;
-
-				//clear to white because black is generated in the unique tile colors for index 0
-				glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-				//use the color buffer with the unique tile colors
-				mColorBufferPtr = &mColorIDs;
-				glBindBuffer(GL_ARRAY_BUFFER, colorBuffer);
-				glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*(mColorBufferPtr->size()), mColorBufferPtr->data(), GL_DYNAMIC_DRAW);
-
-				glDrawArrays(GL_POINTS, 0, mVertexInfo.size()/2);
-
-				glFlush();
-				glFinish();
-
-				glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-
-				//read the pixel at the mouse position and look up the tile that maps to this color in the color/tile map
-				unsigned char data[4];
-				glReadPixels(static_cast<GLint>(mouseX), static_cast<GLint>(mouseY), 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, data);
-				unsigned int rgbVal = data[0] | (data[1] << 8) | (data[2] << 16);
-
+				//lookup which tile was clicked (if any)
 				if (mColorToTileMap.find(rgbVal) == mColorToTileMap.end())
 				{
 					printf("DID NOT FIND TILE\n");
-					printf("%#04x, %#04x, %#04x\n", data[0], data[1], data[2]);
 					mSelectedTilePos = AxialCoord(mNumTiles, mNumTiles);
 				}
 				else
@@ -457,41 +434,28 @@ public:
 					PrintTileInfo(tileID);
 					mSelectedTilePos = mGameBoard->GetTileCoord(tileID);
 				}
+
+				mDoPick = false;
 			}
+
+			//update the selected tile/outline texture
+			GLfloat selectedPos[] = { 0.f, 0.f };
+			GetCartesianFromAxial(selectedPos[0], selectedPos[1], mSelectedTilePos);
+			glUniform2fv(mSelectedPointUniform, 1, selectedPos);
+
+			glBindBuffer(GL_ARRAY_BUFFER, mVertexBuffer);
+			glVertexAttribPointer(mPosAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
 
 			//second render pass with the real colors
 			glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-			glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
-			glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
-
-			if (colorsBufferDirty)
-			{
-				colorsBufferDirty = false;
-				mColorBufferPtr = &mColorInfo;
-				glBindBuffer(GL_ARRAY_BUFFER, colorBuffer);
-				glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*(mColorBufferPtr->size()), mColorBufferPtr->data(), GL_DYNAMIC_DRAW);
-			}
-
-			GLfloat selectedX, selectedY;
-			GetCartesianFromAxial(selectedX, selectedY, mSelectedTilePos);
-			GLfloat selectedPos[] = { selectedX, selectedY };
-			glUniform2fv(selectedPointUniform, 1, selectedPos);
-
-			glDrawArrays(GL_POINTS, 0, mVertexInfo.size()/2);
+			mColorBufferPtr = &mColorInfo;
+			RenderPass();
 
 			glfwSwapBuffers(window);
 			glfwPollEvents();
 		}
 
-		glDeleteProgram(mShaderProgram);
-		glDeleteShader(mGeometryShader);
-		glDeleteShader(mFragmentShader);
-		glDeleteShader(mVertexShader);
-
-		glDeleteBuffers(1, &vertexBuffer);
-		glDeleteBuffers(1, &colorBuffer);
+		Cleanup();
 	}
 
 private:
@@ -501,18 +465,28 @@ private:
 	GLuint mFragmentShader;
 	GLuint mShaderProgram;
 
+	GLint mSelectedPointUniform;
+	GLint mPosAttrib;
+
+	GLuint mColorBuffer;
+	GLuint mVertexBuffer;
+
+	std::vector<glm::vec3>* mColorBufferPtr;
+	std::vector<glm::vec2> mVertexInfo;
+	std::vector<glm::vec3> mColorInfo;
+	std::vector<glm::vec3> mColorIDs;
+	std::map<unsigned int, int> mColorToTileMap;
+
 	int mNumPlayers;
 	size_t mNumTiles;
 	std::unique_ptr<Board> mGameBoard;
+
+	bool mDoPick;
+	enum KeyPress { NO_KEY_PRESS, LEFT_KEY, RIGHT_KEY, UP_KEY, DOWN_KEY };
+	enum MouseClick { NO_MOUSE_CLICK, LEFT_MOUSE, MIDDLE_MOUSE, RIGHT_MOUSE };
+	KeyPress mLastKeyPress;
+	MouseClick mLastMouseClick;
 	AxialCoord mSelectedTilePos;
-
-	std::map<unsigned int, int> mColorToTileMap;
-
-	std::vector<GLfloat>* mColorBufferPtr;
-	std::vector<GLfloat> mVertexInfo;
-	std::vector<GLfloat> mColorInfo;
-	std::vector<GLfloat> mColorIDs;
-	std::vector<GLuint> mVertIndices;
 };
 
 
@@ -561,7 +535,7 @@ int main(void)
 	glfwSetKeyCallback(window, key_callback);
 
 	{
-		FancyCastlesView gameInstance(4);
+		FancyCastlesView gameInstance(2);
 		gameInstance.RenderLoop(window);
 	}
 

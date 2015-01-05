@@ -36,4 +36,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="frag.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="geo.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="vert.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+  </ItemGroup>
 </Project>
