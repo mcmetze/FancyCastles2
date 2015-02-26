@@ -76,12 +76,20 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Board.cpp" />
+    <ClCompile Include="BoardRenderer.cpp" />
     <ClCompile Include="FancyCastles.cpp" />
+    <ClCompile Include="GameManager.cpp" />
     <ClCompile Include="Hex.cpp" />
+    <ClCompile Include="InputHandler.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Board.h" />
+    <ClInclude Include="BoardRenderer.h" />
+    <ClInclude Include="Command.h" />
+    <ClInclude Include="GameManager.h" />
     <ClInclude Include="Hex.h" />
+    <ClInclude Include="Includes.h" />
+    <ClInclude Include="InputHandler.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="frag.glsl" />

@@ -1,10 +1,6 @@
 #ifndef METZE_HEX_H
 #define METZE_HEX_H
 
-#include <vector>
-#include <memory>
-#include <map>
-
 class Timer;
 class Player;
 class Building;

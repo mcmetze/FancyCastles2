@@ -3,12 +3,17 @@
 
 layout(points) in;
 layout(triangle_strip, max_vertices = 12) out;
+
 in vec3 vColor[];
+
 uniform vec2 selectedPoint;
+
 out vec3 fColor;
 out vec2 fTexcoord;
+
 void main() 
 {
+	//default tex coords for unselected tile
 	vec2 texc[6] = vec2[](vec2(0.0, 0.0), 
                           vec2(0.0, 0.0), 
                           vec2(0.0, 0.0), 
@@ -19,6 +24,7 @@ void main()
 	float h = 768.f/100.f;
 	vec2 verts[6]; 
 
+	// create the new verts of the hex and store them in an array to be triangulated 
 	for (int corner = 0; corner < 6; corner++)
 	{ 
 		float angle = 2.0 * PI / 6.0 * (corner + 0.5); 
@@ -26,7 +32,9 @@ void main()
 		float cornerY = gl_in[0].gl_Position.y + sin(angle); 
 		verts[corner] = vec2(cornerX/w, cornerY/h); 
 	}
-      
+    
+	// check to see if the tile selected from the pick is the current tile
+	// if so, update the tex coordinates for so the selection texture appears  
 	if (selectedPoint.x == gl_in[0].gl_Position.x && selectedPoint.y == gl_in[0].gl_Position.y )
 	{ 
 		texc = vec2[](vec2(1.0, 0.75), 
@@ -37,6 +45,7 @@ void main()
 					  vec2(1.0, 0.25)); 
 	}
 
+	//need to triangulate the hex in the right order so it renders properly
 	fColor = vColor[0];
 	int curVert = 0;
 	for(int triangle = 0; triangle < 4; triangle++) 

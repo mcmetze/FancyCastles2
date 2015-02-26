@@ -1,7 +1,6 @@
 #include "Board.h"
-#include <stdlib.h>
+
 #include <time.h>
-#include <iostream>
 
 Board::Board():
 	  mNumTiles(0)

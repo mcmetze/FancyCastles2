@@ -1,18 +1,27 @@
 #ifndef METZE_BOARD_H
 #define METZE_BOARD_H
 
+#include <vector>
+#include <map>
+#include <memory>
+
 #include "Hex.h"
 
 struct AxialCoord
 {
-	int r;
-	int q;
+	int r, q;
 	AxialCoord() : r(0), q(0) { }
 	AxialCoord(int r_in, int q_in) :r(r_in), q(q_in) { }
 };
 
-typedef std::map<size_t, AxialCoord> TileMap;
-typedef std::vector<std::unique_ptr<HexTile> > TileList;
+struct Color
+{
+	float r, g, b;
+
+	Color() : r(0.0), g(0.0), b(0.0) { }
+	Color(float r_in, float g_in, float b_in) : r(r_in), g(g_in), b(b_in) { }
+};
+
 
 class Board
 {
@@ -27,6 +36,9 @@ public:
 	int GetNumTiles() const { return mNumTiles; }
 
 private:
+	typedef std::map<size_t, AxialCoord> TileMap;
+	typedef std::vector<std::unique_ptr<HexTile> > TileList;
+
 	void CreateTiles(int numTilesPerType);
 	void ShuffleTiles(TileList& tilesToShuffle);
 	void ConnectTiles(TileList& tilesForBoard);
