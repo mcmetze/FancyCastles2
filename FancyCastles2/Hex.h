@@ -11,16 +11,22 @@ class HexTile
 {
 
 public:
-	HexTile() : mHarvestRate(0), mTileType(WATER){ }
-	HexTile(ResourceType type) : mHarvestRate(1), mTileType(type) { }
-	HexTile(const HexTile& other);
+	HexTile() : mHarvestRate(0), mTileType(WATER), mTileOwnerID(-1){ }
+	HexTile(ResourceType type);
 
 	ResourceType GetTileType() const { return mTileType; }
+	int GetTileOwnerID() const { return mTileOwnerID; }
+
+	void SetTileOwner(int playerID) { mTileOwnerID = playerID; }
+
+	void PrintTileInfo() const;
 
 private:
 
 	int mHarvestRate;
 	ResourceType mTileType;
+	int mTileOwnerID;
+
 	//std::map<ResourceType, int> mRawResources;
 	//Timer* timer;
 	//Player* tileOwner;

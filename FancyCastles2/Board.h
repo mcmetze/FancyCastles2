@@ -3,6 +3,8 @@
 
 #include <vector>
 #include <map>
+#include <unordered_map>
+
 #include <memory>
 
 #include "Hex.h"
@@ -12,6 +14,21 @@ struct AxialCoord
 	int r, q;
 	AxialCoord() : r(0), q(0) { }
 	AxialCoord(int r_in, int q_in) :r(r_in), q(q_in) { }
+
+	bool operator==(const AxialCoord& other) const
+	{ 
+		return (other.r == r && other.q == q); 
+	}
+};
+
+struct AxialHash
+{
+	std::size_t operator () (const AxialCoord& other) const
+	{
+		// Modified Bernstein hash
+		// http://eternallyconfuzzled.com/tuts/algorithms/jsw_tut_hashing.aspx
+		return (33 * other.r) ^ other.q;
+	}
 };
 
 struct Color
@@ -33,7 +50,12 @@ public:
 
 	AxialCoord  GetTileCoord(size_t tileIndex);
 	ResourceType GetTileType(size_t tileIndex) const;
+	bool IsPositionValid(const AxialCoord& position) const;
 	int GetNumTiles() const { return mNumTiles; }
+
+	void SetTileOwner(int tileID, int playerID);
+
+	void PrintTileInfo(const int& tileID) const;
 
 private:
 	typedef std::map<size_t, AxialCoord> TileMap;

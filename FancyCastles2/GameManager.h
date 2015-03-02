@@ -25,6 +25,8 @@ private:
 	void SetupHexVerts();
 	void SetupTileColors();
 
+	void SetupPlayers();
+
 	void PrintTileInfo(int tileID);
 
 	Color GetVertexColorFromType(const ResourceType& tileType);
@@ -36,8 +38,12 @@ private:
 	int mNumPlayers;
 
 	AxialCoord mSelectedTilePos;
+	int mTileIndexPicked;
+	std::unordered_map<AxialCoord, int, AxialHash> mChosenTilesMap;
 	
 	bool mRunGameLoop;
+
+	bool mDebugPrint;
 };
 
 #endif

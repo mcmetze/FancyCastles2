@@ -10,7 +10,7 @@ Board::Board():
 
 }
 
-int Board::GetNextHexagonalNumber(const int& curNumTiles) 
+int Board::GetNextHexagonalNumber(const int& curNumTiles)
 {
 	//equation from wikipedia on centered hexagonal numbers
 	mNumLayers = 2;
@@ -42,7 +42,7 @@ void Board::ShuffleTiles(TileList& tilesToShuffle)
 	srand(time(nullptr));
 
 	//fisher yates shuffle to randomize the tiles in the tile list
-	for (auto i = mNumTiles-1; i > 0; --i)
+	for (auto i = mNumTiles - 1; i > 0; --i)
 	{
 		auto swapPos = rand() % (i + 1);
 		tilesToShuffle[i].swap(tilesToShuffle[swapPos]);
@@ -74,7 +74,7 @@ void Board::ConnectTiles(TileList& tilesForBoard)
 	int tileIndex = 0;
 	int startR = 0;
 	int startQ = -mNumLayers;
-	
+
 	//compute the axial coordinates for the top half of the board 
 	while (startQ <= 0)
 	{
@@ -103,6 +103,17 @@ void Board::ConnectTiles(TileList& tilesForBoard)
 	}
 }
 
+void Board::SetTileOwner(int tileID, int playerID)
+{
+	mTiles[tileID]->SetTileOwner(playerID);
+}
+
+bool Board::IsPositionValid(const AxialCoord& position) const
+{
+	return !(abs(position.q) > mNumLayers ||
+			 abs(position.r) > mNumLayers ||
+			 abs(position.r + position.q) > mNumLayers);
+}
 
 AxialCoord Board::GetTileCoord(size_t tileIndex)
 {
@@ -112,4 +123,9 @@ AxialCoord Board::GetTileCoord(size_t tileIndex)
 ResourceType Board::GetTileType(size_t tileIndex) const
 {
 	return mTiles[tileIndex]->GetTileType();
+}
+
+void Board::PrintTileInfo(const int& tileID) const
+{
+	mTiles[tileID]->PrintTileInfo();
 }
