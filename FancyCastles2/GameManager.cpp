@@ -8,11 +8,12 @@ GameManager::GameManager(const int& numPlayers, std::unique_ptr<BoardRenderer> r
 	, mRunGameLoop(true)
 	, mSelectedTilePos(INT_MAX, INT_MAX)
 	, mTileIndexPicked(INT_MAX)
-	, mDebugPrint(false)
+	, mDebugPrint(true)
 {
 	CreateGameBoard();
 	SetupRenderer();
-	SetupPlayers();
+	//SetupPlayers();
+	AssignPlayers();
 }
 
 void
@@ -23,13 +24,16 @@ GameManager::CreateGameBoard()
 }
 
 void 
-GameManager::SetupHexVerts()
+GameManager::SetupTiles()
 {
-	std::vector<AxialCoord> tileCoords;
+	std::vector<AxialCoord> tileCoords;	
+	std::vector<Color> tileColors;
 	for (size_t tileIndex = 0; tileIndex < mGameBoard->GetNumTiles(); ++tileIndex)
 	{
 		tileCoords.push_back(mGameBoard->GetTileCoord(tileIndex));
+		tileColors.push_back(GetVertexColorFromType(mGameBoard->GetTileType(tileIndex)));
 	}
+	mRenderComponent->SetupTileColors(tileColors);
 	mRenderComponent->SetupHexVerts(tileCoords);
 }
 
@@ -66,22 +70,10 @@ GameManager::GetVertexColorFromType(const ResourceType& tileType)
 	return tileColor;
 }
 
-void
-GameManager::SetupTileColors()
-{
-	std::vector<Color> tileColors;
-	for (size_t tileIndex = 0; tileIndex < mGameBoard->GetNumTiles(); ++tileIndex)
-	{
-		tileColors.push_back(GetVertexColorFromType(mGameBoard->GetTileType(tileIndex)));
-	}
-	mRenderComponent->SetupTileColors(tileColors);
-}
-
 void 
 GameManager::SetupRenderer()
 {
-	SetupHexVerts();
-	SetupTileColors();
+	SetupTiles();
 	mRenderComponent->SetupBuffers();
 	mRenderComponent->SetupShaders();
 	mRenderComponent->SetupAttributes();
@@ -89,12 +81,33 @@ GameManager::SetupRenderer()
 	mRenderComponent->SetSelection(mSelectedTilePos);
 }
 
+void 
+GameManager::AssignPlayers()
+{
+	int curPlayerID = 0;
+
+	for (int tileIndex = 0; tileIndex < mGameBoard->GetNumTiles(); ++tileIndex)
+	{
+		if (mGameBoard->GetTileType(tileIndex) != WATER)
+		{
+			mSelectedTilePos = mGameBoard->GetTileCoord(tileIndex);
+
+			printf("player %i assigned to tile (%i, %i)\n", curPlayerID, mSelectedTilePos.r, mSelectedTilePos.q);
+			mGameBoard->SetTileOwner(tileIndex, curPlayerID);
+			curPlayerID = (curPlayerID + 1) % mNumPlayers;
+		}
+	}
+
+	mRenderComponent->RenderScene();
+}
+
 void
 GameManager::SetupPlayers()
 {
 	int curPlayerID = 0;
+	const int numTilesToSelect = mNumPlayers*(NUMTYPES - 1);
 
-	while (mChosenTilesMap.size() < mNumPlayers*(NUMTYPES-1))
+	while (mChosenTilesMap.size() < numTilesToSelect)
 	{
 		Command* mouseCmd = mInputHandler->HandleMouseClick();
 		mouseCmd->Execute(this);
@@ -113,8 +126,6 @@ GameManager::SetupPlayers()
 
 		mRenderComponent->RenderScene();
 	}
-
-	mDebugPrint = true;
 }
 
 void

@@ -22,9 +22,9 @@ private:
 	void CreateGameBoard();
 
 	void SetupRenderer();
-	void SetupHexVerts();
-	void SetupTileColors();
+	void SetupTiles();
 
+	void AssignPlayers();
 	void SetupPlayers();
 
 	void PrintTileInfo(int tileID);

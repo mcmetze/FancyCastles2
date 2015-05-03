@@ -85,7 +85,6 @@
   <ItemGroup>
     <ClInclude Include="Board.h" />
     <ClInclude Include="BoardRenderer.h" />
-    <ClInclude Include="Command.h" />
     <ClInclude Include="GameManager.h" />
     <ClInclude Include="Hex.h" />
     <ClInclude Include="Includes.h" />
