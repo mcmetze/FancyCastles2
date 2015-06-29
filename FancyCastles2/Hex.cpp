@@ -1,7 +1,8 @@
 #include "Hex.h"
 #include <stdio.h>
+#include <iostream>
 
-HexTile::HexTile(ResourceType type) : mTileType(type), mHarvestRate(1)
+HexTile::HexTile(ResourceType type, int tileID) : mTileType(type), mTileID(tileID), mHarvestRate(1)
 {
 	if (mTileType == WATER)
 		mHarvestRate = 0;
@@ -9,6 +10,11 @@ HexTile::HexTile(ResourceType type) : mTileType(type), mHarvestRate(1)
 
 void HexTile::PrintTileInfo() const
 {
+	printf("-----Tile Info-----\n");
+	printf("tileID: %i, ", mTileID);
+	printf("owner: %i, ", mTileOwnerID);
+	printf("harvest rate: %i, ", mHarvestRate);
+
 	switch (mTileType)
 	{
 	case WATER:
@@ -30,10 +36,34 @@ void HexTile::PrintTileInfo() const
 		break;
 	}
 
-	if (mTileOwnerID >= 0) 
-		printf("owner= %i\n", mTileOwnerID);
-
-	printf("harvest rate = %i\n", mHarvestRate);
-
 	printf("\n");
+}
+
+
+
+
+TileTimer::TileTimer() : mTimerState(), mTimeoutSec(5.0) { }
+
+
+void TileTimer::OnTimerStart()
+{
+	mTimerState.SetBusy();
+}
+
+void TileTimer::OnTimerDone()
+{
+	mTimerState.isBusy = false;
+	Notify();
+}
+
+void TileTimer::Tick()
+{
+	if (mTimerState.isBusy)
+	{
+		const auto duration = (std::clock() - mTimerState.startTime) / (double(CLOCKS_PER_SEC));
+		if (duration - mTimeoutSec > DBL_EPSILON)
+		{
+			OnTimerDone();
+		}
+	}
 }

@@ -1,114 +1,78 @@
 #include "InputHandler.h"
 
-InputHandler::InputHandler(GLFWwindow* window)
-	: mWindow(window)
-	, mLastKeyPress(NO_KEY_PRESS)
-	, mLastMouseClick(NO_MOUSE_CLICK)
-	, mLeftCommand(new MoveSelectionCommand(0, -1))
-	, mRightCommand(new MoveSelectionCommand(0, 1))
-	, mUpCommand(new MoveSelectionCommand(-1, 0))
-	, mDownCommand(new MoveSelectionCommand(1, 0))
-	, mPickCommand(new PickSelectionCommand())
-	, mNullCommand(new NullCommand())
-	, mExitCommand(new ExitGameCommand())
-	
+static void KeyboardCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
+	if ( key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+	{
+		glfwSetWindowShouldClose(window, GL_TRUE);
+	}
+
+	if (action == GLFW_RELEASE)
+	{
+		auto inputHandler = reinterpret_cast<InputHandler*>(glfwGetWindowUserPointer(window));
+		inputHandler->HandleKeyPress(key);
+	}
+}
+
+static void MouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
+{
+	if (action == GLFW_RELEASE)
+	{
+		auto inputHandler = reinterpret_cast<InputHandler*>(glfwGetWindowUserPointer(window));
+		inputHandler->HandleMouseClick(button);
+	}
+}
+
+InputHandler::InputHandler(GLFWwindow* window)
+{
+	glfwSetKeyCallback(window, KeyboardCallback);
+	glfwSetMouseButtonCallback(window, MouseButtonCallback);
+
+	mKeyboardInputMap[GLFW_KEY_LEFT] = std::make_unique<MoveSelectionCommand>(0, -1);
+	mKeyboardInputMap[GLFW_KEY_RIGHT] = std::make_unique<MoveSelectionCommand>(0, 1);
+	mKeyboardInputMap[GLFW_KEY_UP] = std::make_unique<MoveSelectionCommand>(-1, 0);
+	mKeyboardInputMap[GLFW_KEY_DOWN] = std::make_unique<MoveSelectionCommand>(1, 0);
+	mKeyboardInputMap[GLFW_KEY_SPACE] = std::make_unique<HarvestRawResourceCommand>();
+	mKeyboardInputMap[GLFW_KEY_ESCAPE] = std::make_unique<ExitGameCommand>();
+
+	mMouseInputMap[GLFW_MOUSE_BUTTON_LEFT] = std::make_unique<PickSelectionCommand>();
 }
 
 InputHandler::~InputHandler()
 {
-	delete mLeftCommand;
-	delete mRightCommand;
-	delete mUpCommand;
-	delete mDownCommand;
-	delete mPickCommand;
-	delete mNullCommand;
-	delete mExitCommand;
 }
 
-Command*
-InputHandler::HandleKeyPress()
+void
+InputHandler::HandleKeyPress(int key)
 {
-	if (glfwGetKey(mWindow, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-	{
-		glfwSetWindowShouldClose(mWindow, GL_TRUE);
-		return mExitCommand;
-	}
-
-
-
-	if (glfwGetKey(mWindow, GLFW_KEY_LEFT) == GLFW_PRESS)
-	{
-		mLastKeyPress = InputHandler::LEFT_KEY;
-	}
-	if (glfwGetKey(mWindow, GLFW_KEY_LEFT) == GLFW_RELEASE && mLastKeyPress == InputHandler::LEFT_KEY)
-	{
-		mLastKeyPress = InputHandler::NO_KEY_PRESS;
-		return mLeftCommand;
-	}
-
-	if (glfwGetKey(mWindow, GLFW_KEY_RIGHT) == GLFW_PRESS)
-	{
-		mLastKeyPress = InputHandler::RIGHT_KEY;
-	}
-	if (glfwGetKey(mWindow, GLFW_KEY_RIGHT) == GLFW_RELEASE && mLastKeyPress == InputHandler::RIGHT_KEY)
-	{
-		mLastKeyPress = InputHandler::NO_KEY_PRESS;
-		return mRightCommand;
-	}
-
-	if (glfwGetKey(mWindow, GLFW_KEY_UP) == GLFW_PRESS)
-	{
-		mLastKeyPress = InputHandler::UP_KEY;
-	}
-	if (glfwGetKey(mWindow, GLFW_KEY_UP) == GLFW_RELEASE && mLastKeyPress == InputHandler::UP_KEY)
-	{
-		mLastKeyPress = InputHandler::NO_KEY_PRESS;
-		return mUpCommand;
-	}
-
-	if (glfwGetKey(mWindow, GLFW_KEY_DOWN) == GLFW_PRESS)
-	{
-		mLastKeyPress = InputHandler::DOWN_KEY;
-	}
-	if (glfwGetKey(mWindow, GLFW_KEY_DOWN) == GLFW_RELEASE && mLastKeyPress == InputHandler::DOWN_KEY)
-	{
-		mLastKeyPress = InputHandler::NO_KEY_PRESS;
-		return mDownCommand;
-	}
-
-	return mNullCommand;
+	const auto command = mKeyboardInputMap.find(key);
+	if (command != mKeyboardInputMap.end())
+		command->second->Execute(mGameManager);
 }
 
-Command*
-InputHandler::HandleMouseClick()
+void 
+InputHandler::HandleMouseClick(int button)
 {
-	// flag the click for release
-	if (glfwGetMouseButton(mWindow, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS)
-	{
-		mLastMouseClick = InputHandler::LEFT_MOUSE;
-	}
-
-	// released from a left mouse click, flag this to do a pick
-	if (glfwGetMouseButton(mWindow, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE && mLastMouseClick == InputHandler::LEFT_MOUSE)
-	{
-		mLastMouseClick = InputHandler::NO_MOUSE_CLICK;
-		return mPickCommand;
-	}
-
-	return mNullCommand;
+	const auto command = mMouseInputMap.find(button);
+	if (command != mMouseInputMap.end())
+		command->second->Execute(mGameManager);
 }
-
 
 
 void
 MoveSelectionCommand::Execute(GameManager* gm)
 {
-	gm->UpdateSelectedTilePosition(mDx, mDy);
+	gm->MoveTileSelection(mDx, mDy);
 }
 
 void
 PickSelectionCommand::Execute(GameManager* gm)
 {
-	gm->DoPick();
+	gm->SelectTileFromMouse();
+}
+
+void
+HarvestRawResourceCommand::Execute(GameManager* gm)
+{
+	gm->HarvestResource();
 }

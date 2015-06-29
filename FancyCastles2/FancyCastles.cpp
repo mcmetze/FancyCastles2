@@ -16,12 +16,6 @@ static void error_callback(int error, const char* description)
 	fputs(description, stderr);
 }
 
-static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
-{
-	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-		glfwSetWindowShouldClose(window, GL_TRUE);
-}
-
 int main(void)
 {
 	glfwSetErrorCallback(error_callback);
@@ -48,13 +42,15 @@ int main(void)
 		exit(EXIT_FAILURE);
 	}
 
-	glfwSetKeyCallback(window, key_callback);
-
 	{
-		const int NUM_PLAYERS = 5;
+		const int NUM_PLAYERS = 6;
 		std::unique_ptr<BoardRenderer> gameRenderer = std::make_unique<BoardRenderer>(window, WINDOW_WIDTH, WINDOW_HEIGHT);
 		std::unique_ptr<InputHandler> inputHandler = std::make_unique<InputHandler>(window);
+		glfwSetWindowUserPointer(window, inputHandler.get() );
+
 		GameManager game(NUM_PLAYERS, std::move(gameRenderer), std::move(inputHandler));
+		//game.SetupPlayers();
+		game.AssignPlayers();
 		game.GameLoop();
 	}
 

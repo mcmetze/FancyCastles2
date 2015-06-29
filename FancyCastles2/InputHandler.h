@@ -24,6 +24,12 @@ private:
 	int mDy;
 };
 
+class HarvestRawResourceCommand : public Command
+{
+public:
+	virtual void Execute(GameManager* gm);
+};
+
 class PickSelectionCommand : public Command
 {
 public:
@@ -48,30 +54,21 @@ public:
 class InputHandler
 {
 public:
-	enum KeyPress { NO_KEY_PRESS, LEFT_KEY, RIGHT_KEY, UP_KEY, DOWN_KEY };
-	enum MouseClick { NO_MOUSE_CLICK, LEFT_MOUSE, MIDDLE_MOUSE, RIGHT_MOUSE };
-
 	InputHandler(GLFWwindow* window);
 	~InputHandler();
 
-	Command* HandleMouseClick();
-	Command* HandleKeyPress();
+	void HandleMouseClick(int buton);
+	void HandleKeyPress(int key);
 
+	void SetGameManager(GameManager* gm) { mGameManager = gm; }
+	
 private:
-	Command* mLeftCommand;
-	Command* mRightCommand;
-	Command* mUpCommand;
-	Command* mDownCommand;
+	GameManager* mGameManager;
 
-	Command* mPickCommand;
+	std::unordered_map<int, std::unique_ptr<Command> > mKeyboardInputMap;
+	std::unordered_map<int, std::unique_ptr<Command> > mMouseInputMap;
 
-	Command* mNullCommand;
-	Command* mExitCommand;
 
-	KeyPress mLastKeyPress;
-	MouseClick mLastMouseClick;
-
-	GLFWwindow* mWindow;
 };
 
 #endif

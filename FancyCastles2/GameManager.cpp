@@ -1,19 +1,25 @@
 #include "GameManager.h"
 #include "InputHandler.h"
+#include "Player.h"
 
 GameManager::GameManager(const int& numPlayers, std::unique_ptr<BoardRenderer> renderer, std::unique_ptr<InputHandler> inputhandler)
 	: mNumPlayers(numPlayers)
 	, mRenderComponent(std::move(renderer))
 	, mInputHandler(std::move(inputhandler))
 	, mRunGameLoop(true)
-	, mSelectedTilePos(INT_MAX, INT_MAX)
-	, mTileIndexPicked(INT_MAX)
-	, mDebugPrint(true)
+	, mDebugPrint(false)
 {
+	ClearSelection();
+
+	CreatePlayers();
 	CreateGameBoard();
 	SetupRenderer();
-	//SetupPlayers();
-	AssignPlayers();
+
+	mInputHandler->SetGameManager(this);
+}
+
+GameManager::~GameManager()
+{
 }
 
 void
@@ -24,11 +30,20 @@ GameManager::CreateGameBoard()
 }
 
 void 
+GameManager::CreatePlayers()
+{
+	for (int playerID = 0; playerID < mNumPlayers; ++playerID)
+	{
+		mPlayerMap.emplace(playerID, std::make_unique<Player>(playerID));
+	}
+}
+
+void 
 GameManager::SetupTiles()
 {
 	std::vector<AxialCoord> tileCoords;	
 	std::vector<Color> tileColors;
-	for (size_t tileIndex = 0; tileIndex < mGameBoard->GetNumTiles(); ++tileIndex)
+	for (int tileIndex = 0; tileIndex < mGameBoard->GetNumTiles(); ++tileIndex)
 	{
 		tileCoords.push_back(mGameBoard->GetTileCoord(tileIndex));
 		tileColors.push_back(GetVertexColorFromType(mGameBoard->GetTileType(tileIndex)));
@@ -85,14 +100,11 @@ void
 GameManager::AssignPlayers()
 {
 	int curPlayerID = 0;
-
 	for (int tileIndex = 0; tileIndex < mGameBoard->GetNumTiles(); ++tileIndex)
 	{
 		if (mGameBoard->GetTileType(tileIndex) != WATER)
 		{
-			mSelectedTilePos = mGameBoard->GetTileCoord(tileIndex);
-
-			printf("player %i assigned to tile (%i, %i)\n", curPlayerID, mSelectedTilePos.r, mSelectedTilePos.q);
+			mPlayerMap[curPlayerID]->AddTile(tileIndex);
 			mGameBoard->SetTileOwner(tileIndex, curPlayerID);
 			curPlayerID = (curPlayerID + 1) % mNumPlayers;
 		}
@@ -109,9 +121,6 @@ GameManager::SetupPlayers()
 
 	while (mChosenTilesMap.size() < numTilesToSelect)
 	{
-		Command* mouseCmd = mInputHandler->HandleMouseClick();
-		mouseCmd->Execute(this);
-
 		if (mGameBoard->IsPositionValid(mSelectedTilePos) && mChosenTilesMap.find(mSelectedTilePos) == mChosenTilesMap.end())
 		{
 			if (mGameBoard->GetTileType(mTileIndexPicked) != WATER)
@@ -129,35 +138,65 @@ GameManager::SetupPlayers()
 }
 
 void
-GameManager::PrintTileInfo(int tileID)
+GameManager::PrintTileInfo(const int&  tileID)
 {
 	mGameBoard->PrintTileInfo(tileID);
 }
 
 void
-GameManager::DoPick()
+GameManager::ClearSelection()
 {
-	mTileIndexPicked = mRenderComponent->DoPick();
-	if (mTileIndexPicked <= mGameBoard->GetNumTiles())
+	mSelectedTilePos = { INT_MAX, INT_MAX };
+	mTileIndexPicked = INT_MAX;
+	mRenderComponent->SetSelection(mSelectedTilePos);
+}
+
+void 
+GameManager::UpdateCurrentTileSelection(const AxialCoord& pos)
+{
+	if ( mGameBoard->IsPositionValid(pos) )
 	{
-		mSelectedTilePos = mGameBoard->GetTileCoord(mTileIndexPicked);
-		if (mDebugPrint)
+		mSelectedTilePos = pos;
+		mTileIndexPicked = mGameBoard->GetTileIndex(pos);
+		mRenderComponent->SetSelection(mSelectedTilePos);
+
+		if ( mDebugPrint )
 			PrintTileInfo(mTileIndexPicked);
+	}
+}
+
+void
+GameManager::SelectTileFromMouse()
+{
+	const auto pickedIndex = mRenderComponent->DoPick();
+	if (pickedIndex >= 0 && pickedIndex <= mGameBoard->GetNumTiles())
+	{
+		UpdateCurrentTileSelection(mGameBoard->GetTileCoord(pickedIndex));
 	}
 	else
 	{
-		mSelectedTilePos = { INT_MAX, INT_MAX };
+		ClearSelection();
 	}
 }
 
 void 
-GameManager::UpdateSelectedTilePosition(int delta_q, int delta_r)
+GameManager::MoveTileSelection(const int& delta_q, const int&  delta_r)
 {
 	AxialCoord moved(mSelectedTilePos.r + delta_r, mSelectedTilePos.q + delta_q);
+	UpdateCurrentTileSelection( moved );
+}
 
-	if (mGameBoard->IsPositionValid(moved))
+void
+GameManager::HarvestResource()
+{
+	if ( mGameBoard->IsPositionValid(mSelectedTilePos) && mGameBoard->GetTileType(mTileIndexPicked) != WATER )
 	{
-		mSelectedTilePos = moved;
+		const auto tileOwnerID = mGameBoard->GetTileOwner(mTileIndexPicked);
+		const auto& player = mPlayerMap[tileOwnerID];
+		if (player && player->SetTimerLocation(mTileIndexPicked, mGameBoard->GetHarvestRate(mTileIndexPicked)))
+		{
+			player->StartHarvest();
+		}
 	}
 }
 
@@ -166,17 +205,10 @@ GameManager::GameLoop()
 {
 	while (mRunGameLoop)
 	{
-		Command* keyCmd = mInputHandler->HandleKeyPress();
-		keyCmd->Execute(this);
-
-		Command* mouseCmd = mInputHandler->HandleMouseClick();
-		mouseCmd->Execute(this);
-
-		mRenderComponent->SetSelection(mSelectedTilePos);
-
-		//update list of entities - players, timers, etc.
-
 		mRenderComponent->RenderScene();
+		
+		for (const auto& curPlayer : mPlayerMap)
+			curPlayer.second->Tick();
 	}
 
 	mRenderComponent->Cleanup();

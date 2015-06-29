@@ -1,10 +1,8 @@
 #ifndef METZE_BOARD_H
 #define METZE_BOARD_H
 
-#include <vector>
 #include <map>
 #include <unordered_map>
-
 #include <memory>
 
 #include "Hex.h"
@@ -21,15 +19,18 @@ struct AxialCoord
 	}
 };
 
-struct AxialHash
-{
-	std::size_t operator () (const AxialCoord& other) const
+namespace std {
+	template <> struct hash<AxialCoord> 
 	{
-		// Modified Bernstein hash
-		// http://eternallyconfuzzled.com/tuts/algorithms/jsw_tut_hashing.aspx
-		return (33 * other.r) ^ other.q;
-	}
-};
+		size_t operator()(const AxialCoord& h) const 
+		{
+			hash<int> int_hash;
+			size_t hq = int_hash(h.q);
+			size_t hr = int_hash(h.r);
+			return hq ^ (hr + 0x9e3779b9 + (hq << 6) + (hq >> 2));
+		}
+	};
+}
 
 struct Color
 {
@@ -46,32 +47,38 @@ public:
 
 	Board();
 
-	void MakeBoard(int numTilesPerType);
+	void MakeBoard(const int& numTilesPerType);
 
-	AxialCoord  GetTileCoord(size_t tileIndex);
-	ResourceType GetTileType(size_t tileIndex) const;
+	AxialCoord  GetTileCoord(const int& tileIndex);
+	ResourceType GetTileType(const int& tileIndex) const;
+	int GetTileIndex(const AxialCoord& coord);
+	int GetHarvestRate(const int& tileIndex) const;
+
 	bool IsPositionValid(const AxialCoord& position) const;
 	int GetNumTiles() const { return mNumTiles; }
 
-	void SetTileOwner(int tileID, int playerID);
+	void SetTileOwner(const int& tileIndex, const int& playerID);
+	int GetTileOwner(const int& tileIndex) const;
 
-	void PrintTileInfo(const int& tileID) const;
+	void PrintTileInfo(const int& tileIndex) const;
 
 private:
-	typedef std::map<size_t, AxialCoord> TileMap;
+	typedef std::unordered_map<int, AxialCoord> TileMap;
+	typedef std::unordered_map<AxialCoord, int > TileIndexLookup;
 	typedef std::vector<std::unique_ptr<HexTile> > TileList;
 
-	void CreateTiles(int numTilesPerType);
-	void ShuffleTiles(TileList& tilesToShuffle);
-	void ConnectTiles(TileList& tilesForBoard);
+	void CreateTiles(const int& numTilesPerType);
+	void ShuffleTiles();
+	void ConnectTiles();
 
-	int GetNextHexagonalNumber(const int& curNumTiles);
+	int ComputeNextHexagonalNumber(const int& curNumTiles);
 
-	size_t mNumTiles;
-	int mNumLayers;
+	int mNumTiles;
+	int mMapRadius;
 
 	TileMap mBoard;
 	TileList mTiles;
+	TileIndexLookup mPosMap;
 };
 
 #endif

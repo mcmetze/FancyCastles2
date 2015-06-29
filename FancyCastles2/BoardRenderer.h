@@ -26,11 +26,8 @@ public:
 	void SetupTexture(const std::string&);
 
 	void SetSelection(const AxialCoord& position);
-
 	int DoPick();
-
 	void RenderScene();
-
 	void Cleanup();
 
 private:

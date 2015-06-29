@@ -1,55 +1,60 @@
 #include "Board.h"
 
-#include <time.h>
+#include <algorithm>
+#include <cassert>
 
 Board::Board():
 	  mNumTiles(0)
-	, mNumLayers(0)
+	, mMapRadius(0)
 	, mBoard()
 {
-
 }
 
-int Board::GetNextHexagonalNumber(const int& curNumTiles)
+int 
+Board::ComputeNextHexagonalNumber(const int& curNumTiles)
 {
 	//equation from wikipedia on centered hexagonal numbers
-	mNumLayers = 2;
+	int mapRadius = 2;
 	int hexagonalNumber = 7;
 	while (curNumTiles > hexagonalNumber)
 	{
-		++mNumLayers;
-		hexagonalNumber = (3 * mNumLayers)*(mNumLayers - 1) + 1;
+		++mapRadius;
+		hexagonalNumber = (3 * mapRadius)*(mapRadius - 1) + 1;
 	}
 
+	mMapRadius = mapRadius - 1;
 	return hexagonalNumber;
 }
 
-void Board::MakeBoard(int numTilesPerType)
+void 
+Board::MakeBoard(const int& numTilesPerType)
 {
 	//make one of each type of tile for each player
 	//then add water tiles until there is enough to make the board a hex
-	int curNumTiles = (NUMTYPES)*numTilesPerType;
-	mNumTiles = GetNextHexagonalNumber(curNumTiles);
+	const auto curNumTiles = (NUMTYPES)*numTilesPerType;
+	mNumTiles = ComputeNextHexagonalNumber(curNumTiles);
 	mTiles.reserve(mNumTiles);
 
 	CreateTiles(numTilesPerType);
-	ShuffleTiles(mTiles);
-	ConnectTiles(mTiles);
+	ShuffleTiles();
+	ConnectTiles();
 }
 
-void Board::ShuffleTiles(TileList& tilesToShuffle)
+void 
+Board::ShuffleTiles()
 {
 	srand(time(nullptr));
 
 	//fisher yates shuffle to randomize the tiles in the tile list
-	for (auto i = mNumTiles - 1; i > 0; --i)
+	for (int i = mNumTiles - 1; i > 0; --i)
 	{
 		auto swapPos = rand() % (i + 1);
-		tilesToShuffle[i].swap(tilesToShuffle[swapPos]);
+		mTiles[i].swap(mTiles[swapPos]);
 	}
 }
 
-void Board::CreateTiles(int numTilesPerType)
+void 
+Board::CreateTiles(const int& numTilesPerType)
 {
 	//make a tile for each type for each player and add it to the list of tiles
 	for (int curType = WHEAT; curType < WATER; ++curType)
@@ -57,75 +62,93 @@ void Board::CreateTiles(int numTilesPerType)
 		ResourceType curResource = static_cast<ResourceType>(curType);
 		for (int curTile = 0; curTile < numTilesPerType; ++curTile)
 		{
-			mTiles.emplace_back(std::make_unique<HexTile>(curResource));
+			mTiles.emplace_back( std::make_unique<HexTile>(curResource, mTiles.size()) );
 		}
 	}
 
 	//the remaining tiles should be water
 	while (mTiles.size() < mNumTiles)
 	{
-		mTiles.emplace_back(std::make_unique<HexTile>(WATER));
+		mTiles.emplace_back( std::make_unique<HexTile>(WATER, mTiles.size()) );
 	}
+
+	assert(mNumTiles == mTiles.size());
 }
 
-void Board::ConnectTiles(TileList& tilesForBoard)
+void 
+Board::ConnectTiles()
 {
-	mNumLayers -= 1;
 	int tileIndex = 0;
-	int startR = 0;
-	int startQ = -mNumLayers;
-
-	//compute the axial coordinates for the top half of the board 
-	while (startQ <= 0)
+	for (int q = -mMapRadius; q <= mMapRadius; ++q)
 	{
-		int curR = startR;
-		while (curR <= mNumLayers)
+		const int r1 = std::max(-mMapRadius, -q - mMapRadius);
+		const int r2 = std::min(mMapRadius, -q + mMapRadius);
+		for (int r = r1; r <= r2; ++r)
 		{
-			AxialCoord curLocation(curR++, startQ);
-			mBoard[tileIndex++] = curLocation;
+			AxialCoord curLocation(r, q);
+			mBoard[tileIndex] = curLocation;
+			mPosMap[curLocation] = tileIndex++;
 		}
-		startR--;
-		startQ++;
-	}
-
-	//compute the axial coordinates for the bottom half of the board
-	int endR = mNumLayers - 1;
-	while (startQ <= mNumLayers)
-	{
-		int curR = -mNumLayers;
-		while (curR <= endR)
-		{
-			AxialCoord curLocation(curR++, startQ);
-			mBoard[tileIndex++] = curLocation;
-		}
-		endR--;
-		startQ++;
 	}
 }
 
-void Board::SetTileOwner(int tileID, int playerID)
+void 
+Board::SetTileOwner(const int& tileID, const int& playerID)
 {
+	assert(tileID >= 0 && tileID < mNumTiles);
 	mTiles[tileID]->SetTileOwner(playerID);
 }
 
-bool Board::IsPositionValid(const AxialCoord& position) const
+bool 
+Board::IsPositionValid(const AxialCoord& position) const
 {
-	return !(abs(position.q) > mNumLayers ||
-			 abs(position.r) > mNumLayers ||
-			 abs(position.r + position.q) > mNumLayers);
+	return !(abs(position.q) > mMapRadius ||
+			 abs(position.r) > mMapRadius ||
+			 abs(position.r + position.q) > mMapRadius);
 }
 
-AxialCoord Board::GetTileCoord(size_t tileIndex)
+AxialCoord 
+Board::GetTileCoord(const int& tileIndex)
 {
+	assert(mBoard.find(tileIndex) != mBoard.end());
 	return mBoard[tileIndex];
 }
 
-ResourceType Board::GetTileType(size_t tileIndex) const
+ResourceType 
+Board::GetTileType(const int& tileIndex) const
 {
+	assert(tileIndex >= 0 && tileIndex < mNumTiles);
 	return mTiles[tileIndex]->GetTileType();
 }
 
-void Board::PrintTileInfo(const int& tileID) const
+int
+Board::GetTileIndex(const AxialCoord& coord)
 {
-	mTiles[tileID]->PrintTileInfo();
+	assert(mPosMap.find(coord) != mPosMap.end());
+	return mPosMap[coord];
+}
+
+int
+Board::GetTileOwner(const int& tileIndex) const
+{
+	assert(tileIndex >= 0 && tileIndex < mNumTiles);
+	return mTiles[tileIndex]->GetTileOwnerID();
+}
+
+int
+Board::GetHarvestRate(const int& tileIndex) const
+{
+	assert(tileIndex >= 0 && tileIndex < mNumTiles);
+	return mTiles[tileIndex]->GetHarvestRate();
+}
+
+
+
+
+
+void
+Board::PrintTileInfo(const int& tileIndex) const
+{
+	assert(tileIndex >= 0 && tileIndex < mNumTiles);
+	mTiles[tileIndex]->PrintTileInfo();
 }

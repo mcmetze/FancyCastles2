@@ -84,14 +84,10 @@ BoardRenderer::GetUniqueTileColor(GLfloat& r, GLfloat& g, GLfloat& b, const int&
 int 
 BoardRenderer::GetTileFromPick(const unsigned int& rgbVal)
 {
-	int tileID = INT_MAX;
-
 	if (mColorToTileMap.find(rgbVal) != mColorToTileMap.end())
-	{
-		tileID = mColorToTileMap[rgbVal];
-	}
+		return mColorToTileMap[rgbVal];
 
-	return tileID;
+	return INT_MAX;
 }
 
 int  
@@ -314,6 +310,7 @@ BoardRenderer::RenderScene()
 
 	glfwSwapBuffers(mWindow);
 	glfwPollEvents();
+	//glfwWaitEvents();
 }
 
 
