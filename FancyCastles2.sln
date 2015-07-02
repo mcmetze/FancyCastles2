@@ -5,6 +5,10 @@ VisualStudioVersion = 12.0.31101.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FancyCastles2", "FancyCastles2\FancyCastles2.vcxproj", "{421EC76D-CEF6-4F27-9A04-11500B8E4A7E}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "GoogleTest", "GoogleTest\GoogleTest.vcxproj", "{7C6F8B3C-AFC5-4D23-B686-F70D9D7D83E6}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "FancyCastlesTest", "FancyCastlesTest\FancyCastlesTest.vcxproj", "{1B35D55B-B192-4163-BEFF-6508EF9E6C8D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -15,6 +19,14 @@ Global
 		{421EC76D-CEF6-4F27-9A04-11500B8E4A7E}.Debug|Win32.Build.0 = Debug|Win32
 		{421EC76D-CEF6-4F27-9A04-11500B8E4A7E}.Release|Win32.ActiveCfg = Release|Win32
 		{421EC76D-CEF6-4F27-9A04-11500B8E4A7E}.Release|Win32.Build.0 = Release|Win32
+		{7C6F8B3C-AFC5-4D23-B686-F70D9D7D83E6}.Debug|Win32.ActiveCfg = Debug|Win32
+		{7C6F8B3C-AFC5-4D23-B686-F70D9D7D83E6}.Debug|Win32.Build.0 = Debug|Win32
+		{7C6F8B3C-AFC5-4D23-B686-F70D9D7D83E6}.Release|Win32.ActiveCfg = Release|Win32
+		{7C6F8B3C-AFC5-4D23-B686-F70D9D7D83E6}.Release|Win32.Build.0 = Release|Win32
+		{1B35D55B-B192-4163-BEFF-6508EF9E6C8D}.Debug|Win32.ActiveCfg = Debug|Win32
+		{1B35D55B-B192-4163-BEFF-6508EF9E6C8D}.Debug|Win32.Build.0 = Debug|Win32
+		{1B35D55B-B192-4163-BEFF-6508EF9E6C8D}.Release|Win32.ActiveCfg = Release|Win32
+		{1B35D55B-B192-4163-BEFF-6508EF9E6C8D}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

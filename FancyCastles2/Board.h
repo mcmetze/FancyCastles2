@@ -17,6 +17,20 @@ struct AxialCoord
 	{ 
 		return (other.r == r && other.q == q); 
 	}
+
+	AxialCoord& operator+=(const AxialCoord& rhs) // compound assignment (does not need to be a member,
+	{											  // but often is, to modify the private members)
+		r += rhs.r;
+		q += rhs.q;
+		return *this; // return the result by reference
+	}
+
+	// friends defined inside class body are inline and are hidden from non-ADL lookup
+	friend AxialCoord operator+(      AxialCoord  lhs,       // passing first arg by value helps optimize chained a+b+c
+								const AxialCoord& rhs)		 // alternatively, both parameters may be const references.
+	{
+		return lhs += rhs; // reuse compound assignment and return the result by value
+	}
 };
 
 namespace std {
@@ -49,13 +63,14 @@ public:
 
 	void MakeBoard(const int& numTilesPerType);
 
-	AxialCoord  GetTileCoord(const int& tileIndex);
+	AxialCoord  GetTileCoord(const int& tileIndex) const;
 	ResourceType GetTileType(const int& tileIndex) const;
-	int GetTileIndex(const AxialCoord& coord);
+	int GetTileIndex(const AxialCoord& coord) const;
 	int GetHarvestRate(const int& tileIndex) const;
+	int GetNumTiles() const { return mNumTiles; }
+	std::vector<int> GetNeighbors(const int& tileIndex) const;
 
 	bool IsPositionValid(const AxialCoord& position) const;
-	int GetNumTiles() const { return mNumTiles; }
 
 	void SetTileOwner(const int& tileIndex, const int& playerID);
 	int GetTileOwner(const int& tileIndex) const;

@@ -180,9 +180,9 @@ BoardRenderer::LoadShaderFile(const char* filename)
 void 
 BoardRenderer::SetupShaders()
 {
-	auto vertexSource = LoadShaderFile("vert.glsl");
-	auto geometrySource = LoadShaderFile("geo.glsl");
-	auto fragmentSource = LoadShaderFile("frag.glsl");
+	const auto vertexSource = LoadShaderFile("vert.glsl");
+	const auto geometrySource = LoadShaderFile("geo.glsl");
+	const auto fragmentSource = LoadShaderFile("frag.glsl");
 	const GLchar* sources[] = { vertexSource.c_str(), geometrySource.c_str(), fragmentSource.c_str() };
 
 	// Create and compile the vertex shader
@@ -215,7 +215,7 @@ BoardRenderer::SetupShaders()
 	GLint success = 0;
 	GLchar ErrorLog[1024] = { 0 };
 	glGetProgramiv(mShaderProgram, GL_LINK_STATUS, &success);
-	if (success == 0)
+	if (!success)
 	{
 		glGetProgramInfoLog(mShaderProgram, sizeof(ErrorLog), NULL, ErrorLog);
 		fprintf(stderr, "Error linking shader program: '%s'\n", ErrorLog);

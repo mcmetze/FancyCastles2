@@ -32,7 +32,7 @@ Player::Tick()
 }
 
 void 
-Player::AddTile(const int& tileIndex)
+Player::TakeTileOwnership(const int& tileIndex)
 {
 	mTilesOwned.insert(tileIndex);
 }

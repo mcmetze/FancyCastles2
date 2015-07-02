@@ -21,7 +21,7 @@ public:
 
 	virtual void OnNotify();
 
-	void AddTile(const int& tileIndex);
+	void TakeTileOwnership(const int& tileIndex);
 	bool SetTimerLocation(const int& tileIndex, const int& harvestRate);
 
 	void StartHarvest();

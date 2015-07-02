@@ -104,7 +104,7 @@ GameManager::AssignPlayers()
 	{
 		if (mGameBoard->GetTileType(tileIndex) != WATER)
 		{
-			mPlayerMap[curPlayerID]->AddTile(tileIndex);
+			mPlayerMap[curPlayerID]->TakeTileOwnership(tileIndex);
 			mGameBoard->SetTileOwner(tileIndex, curPlayerID);
 			curPlayerID = (curPlayerID + 1) % mNumPlayers;
 		}
@@ -121,9 +121,9 @@ GameManager::SetupPlayers()
 
 	while (mChosenTilesMap.size() < numTilesToSelect)
 	{
-		if (mGameBoard->IsPositionValid(mSelectedTilePos) && mChosenTilesMap.find(mSelectedTilePos) == mChosenTilesMap.end())
+		if ( mGameBoard->IsPositionValid(mSelectedTilePos) && mChosenTilesMap.find(mSelectedTilePos) == mChosenTilesMap.end() )
 		{
-			if (mGameBoard->GetTileType(mTileIndexPicked) != WATER)
+			if ( mGameBoard->GetTileType(mTileIndexPicked) != WATER )
 			{
 				printf("player %i selected tile (%i, %i)\n", curPlayerID, mSelectedTilePos.r, mSelectedTilePos.q);
 
@@ -169,7 +169,7 @@ void
 GameManager::SelectTileFromMouse()
 {
 	const auto pickedIndex = mRenderComponent->DoPick();
-	if (pickedIndex >= 0 && pickedIndex <= mGameBoard->GetNumTiles())
+	if ( pickedIndex >= 0 && pickedIndex <= mGameBoard->GetNumTiles() )
 	{
 		UpdateCurrentTileSelection(mGameBoard->GetTileCoord(pickedIndex));
 	}
@@ -193,7 +193,7 @@ GameManager::HarvestResource()
 	{
 		const auto tileOwnerID = mGameBoard->GetTileOwner(mTileIndexPicked);
 		const auto& player = mPlayerMap[tileOwnerID];
-		if (player && player->SetTimerLocation(mTileIndexPicked, mGameBoard->GetHarvestRate(mTileIndexPicked)))
+		if ( player && player->SetTimerLocation(mTileIndexPicked, mGameBoard->GetHarvestRate(mTileIndexPicked)) )
 		{
 			player->StartHarvest();
 		}

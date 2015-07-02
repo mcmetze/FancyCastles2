@@ -96,6 +96,8 @@ void
 Board::SetTileOwner(const int& tileID, const int& playerID)
 {
 	assert(tileID >= 0 && tileID < mNumTiles);
+	assert(mTiles[tileID]->GetTileType() != WATER);
+
 	mTiles[tileID]->SetTileOwner(playerID);
 }
 
@@ -108,10 +110,11 @@ Board::IsPositionValid(const AxialCoord& position) const
 }
 
 AxialCoord 
-Board::GetTileCoord(const int& tileIndex)
+Board::GetTileCoord(const int& tileIndex) const
 {
-	assert(mBoard.find(tileIndex) != mBoard.end());
-	return mBoard[tileIndex];
+	const auto iter = mBoard.find(tileIndex);
+	assert(iter != mBoard.end());
+	return iter->second;
 }
 
 ResourceType 
@@ -122,10 +125,11 @@ Board::GetTileType(const int& tileIndex) const
 }
 
 int
-Board::GetTileIndex(const AxialCoord& coord)
+Board::GetTileIndex(const AxialCoord& coord) const
 {
-	assert(mPosMap.find(coord) != mPosMap.end());
-	return mPosMap[coord];
+	const auto iter = mPosMap.find(coord);
+	assert(iter != mPosMap.end());
+	return iter->second;
 }
 
 int
@@ -140,6 +144,30 @@ Board::GetHarvestRate(const int& tileIndex) const
 {
 	assert(tileIndex >= 0 && tileIndex < mNumTiles);
 	return mTiles[tileIndex]->GetHarvestRate();
+}
+
+
+std::vector<int>
+Board::GetNeighbors(const int& tileIndex) const
+{
+	std::vector<int> neighbors;
+	if (tileIndex < 0 || tileIndex > mNumTiles)
+		return neighbors;
+
+	const std::vector<AxialCoord> offsets = 
+	{
+		{ -1, 0 }, { -1,  1 }, {0, -1},
+		{  1, 0 }, {  1, -1 }, {0,  1}
+	};
+	const auto position = GetTileCoord(tileIndex);
+	for (auto& offset : offsets)
+	{
+		AxialCoord neighbor = position + offset;
+		if (IsPositionValid(neighbor))
+			neighbors.push_back(GetTileIndex(neighbor));
+	}
+
+	return neighbors;
 }
 
 
