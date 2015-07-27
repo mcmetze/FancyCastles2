@@ -3,6 +3,7 @@
 
 #include <vld.h>
 
+#include "BoardRenderer.h"
 #include "GameManager.h"
 #include "InputHandler.h"
 
@@ -46,7 +47,7 @@ int main(void)
 		const int NUM_PLAYERS = 6;
 		std::unique_ptr<BoardRenderer> gameRenderer = std::make_unique<BoardRenderer>(window, WINDOW_WIDTH, WINDOW_HEIGHT);
 		std::unique_ptr<InputHandler> inputHandler = std::make_unique<InputHandler>(window);
-		glfwSetWindowUserPointer(window, inputHandler.get() );
+		glfwSetWindowUserPointer( window, inputHandler.get() );
 
 		GameManager game(NUM_PLAYERS, std::move(gameRenderer), std::move(inputHandler));
 		//game.SetupPlayers();

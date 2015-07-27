@@ -1,5 +1,4 @@
-#ifndef METZE_OBSERVER_H
-#define METZE_OBSERVER_H
+#pragma once
 
 #include <vector>
 
@@ -38,5 +37,3 @@ protected:
 		}
 	}
 };
-
-#endif

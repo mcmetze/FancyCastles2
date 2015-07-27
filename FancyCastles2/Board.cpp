@@ -1,7 +1,10 @@
-#include "Board.h"
-
 #include <algorithm>
 #include <cassert>
+#include <ctime>
+#include <queue>
+
+#include "Board.h"
+//#include "Tile.h"
 
 Board::Board():
 	  mNumTiles(0)
@@ -78,6 +81,8 @@ Board::CreateTiles(const int& numTilesPerType)
 void 
 Board::ConnectTiles()
 {
+	//Create the coordinates for the board to make a hexagonal
+	// shape and map them to the index of a tile in the tile list
 	int tileIndex = 0;
 	for (int q = -mMapRadius; q <= mMapRadius; ++q)
 	{
@@ -96,7 +101,8 @@ void
 Board::SetTileOwner(const int& tileID, const int& playerID)
 {
 	assert(tileID >= 0 && tileID < mNumTiles);
-	assert(mTiles[tileID]->GetTileType() != WATER);
+	if (mTiles[tileID]->GetTileType() == WATER)
+		return;
 
 	mTiles[tileID]->SetTileOwner(playerID);
 }
@@ -147,10 +153,10 @@ Board::GetHarvestRate(const int& tileIndex) const
 }
 
 
-std::vector<int>
+std::unordered_set<int>
 Board::GetNeighbors(const int& tileIndex) const
 {
-	std::vector<int> neighbors;
+	std::unordered_set<int> neighbors;
 	if (tileIndex < 0 || tileIndex > mNumTiles)
 		return neighbors;
 
@@ -163,11 +169,37 @@ Board::GetNeighbors(const int& tileIndex) const
 	for (auto& offset : offsets)
 	{
 		AxialCoord neighbor = position + offset;
-		if (IsPositionValid(neighbor))
-			neighbors.push_back(GetTileIndex(neighbor));
+		if ( IsPositionValid(neighbor) )
+			neighbors.insert(GetTileIndex(neighbor));
 	}
 
 	return neighbors;
+}
+
+std::unordered_set<int>
+Board::FindConnectedTilesWithSameOwner(const int& playerID, const int& source) const
+{
+	std::unordered_set<int> tilesVisited;
+	std::queue<int> tilesToVisit;
+	tilesToVisit.push(source);
+
+	while ( !tilesToVisit.empty() )
+	{
+		const auto& curTile = tilesToVisit.front();
+		tilesToVisit.pop();
+		tilesVisited.insert(curTile);
+
+		for (const auto& neighbor : GetNeighbors(curTile))
+		{
+			if ( GetTileOwner(neighbor) == playerID )
+			{
+				if ( tilesVisited.find(neighbor) == tilesVisited.end() )
+					tilesToVisit.push(neighbor);
+			}
+		}
+	}
+
+	return tilesVisited;
 }
 
 

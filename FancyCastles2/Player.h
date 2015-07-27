@@ -1,5 +1,4 @@
-#ifndef METZE_PLAYER_H
-#define METZE_PLAYER_H
+#pragma once
 
 #include <memory>
 #include <unordered_map>
@@ -22,6 +21,8 @@ public:
 	virtual void OnNotify();
 
 	void TakeTileOwnership(const int& tileIndex);
+	const std::unordered_set<int>& GetTilesOwned() const { return mTilesOwned; }
+	int GetRawResourcesOnTile(const int& tileIndex) const;
 	bool SetTimerLocation(const int& tileIndex, const int& harvestRate);
 
 	void StartHarvest();
@@ -41,5 +42,3 @@ private:
 	std::unordered_set<int> mTilesOwned;
 	
 };
-
-#endif

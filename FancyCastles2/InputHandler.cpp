@@ -1,4 +1,9 @@
+#include <GLFW/glfw3.h>
+
 #include "InputHandler.h"
+
+#include "Commands.h"
+#include "GameManager.h"
 
 static void KeyboardCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
@@ -33,6 +38,7 @@ InputHandler::InputHandler(GLFWwindow* window)
 	mKeyboardInputMap[GLFW_KEY_UP] = std::make_unique<MoveSelectionCommand>(-1, 0);
 	mKeyboardInputMap[GLFW_KEY_DOWN] = std::make_unique<MoveSelectionCommand>(1, 0);
 	mKeyboardInputMap[GLFW_KEY_SPACE] = std::make_unique<HarvestRawResourceCommand>();
+	mKeyboardInputMap[GLFW_KEY_1] = std::make_unique<BuildCommand>();
 	mKeyboardInputMap[GLFW_KEY_ESCAPE] = std::make_unique<ExitGameCommand>();
 
 	mMouseInputMap[GLFW_MOUSE_BUTTON_LEFT] = std::make_unique<PickSelectionCommand>();
@@ -40,6 +46,12 @@ InputHandler::InputHandler(GLFWwindow* window)
 
 InputHandler::~InputHandler()
 {
+}
+
+void
+InputHandler::SetGameManager(GameManager* gm)
+{
+	mGameManager = gm;
 }
 
 void
@@ -56,23 +68,4 @@ InputHandler::HandleMouseClick(int button)
 	const auto command = mMouseInputMap.find(button);
 	if (command != mMouseInputMap.end())
 		command->second->Execute(mGameManager);
-}
-
-
-void
-MoveSelectionCommand::Execute(GameManager* gm)
-{
-	gm->MoveTileSelection(mDx, mDy);
-}
-
-void
-PickSelectionCommand::Execute(GameManager* gm)
-{
-	gm->SelectTileFromMouse();
-}
-
-void
-HarvestRawResourceCommand::Execute(GameManager* gm)
-{
-	gm->HarvestResource();
 }

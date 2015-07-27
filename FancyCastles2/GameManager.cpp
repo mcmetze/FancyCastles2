@@ -1,4 +1,7 @@
 #include "GameManager.h"
+
+#include "Board.h"
+#include "BoardRenderer.h"
 #include "InputHandler.h"
 #include "Player.h"
 
@@ -20,6 +23,7 @@ GameManager::GameManager(const int& numPlayers, std::unique_ptr<BoardRenderer> r
 
 GameManager::~GameManager()
 {
+	mRenderComponent->Cleanup();
 }
 
 void
@@ -109,8 +113,6 @@ GameManager::AssignPlayers()
 			curPlayerID = (curPlayerID + 1) % mNumPlayers;
 		}
 	}
-
-	mRenderComponent->RenderScene();
 }
 
 void
@@ -119,20 +121,22 @@ GameManager::SetupPlayers()
 	int curPlayerID = 0;
 	const int numTilesToSelect = mNumPlayers*(NUMTYPES - 1);
 
-	while (mChosenTilesMap.size() < numTilesToSelect)
+	std::unordered_map<AxialCoord, int> chosenTilesMap;
+	while ( chosenTilesMap.size() < numTilesToSelect )
 	{
-		if ( mGameBoard->IsPositionValid(mSelectedTilePos) && mChosenTilesMap.find(mSelectedTilePos) == mChosenTilesMap.end() )
+		if ( mGameBoard->IsPositionValid(mSelectedTilePos) && chosenTilesMap.find(mSelectedTilePos) == chosenTilesMap.end() )
 		{
 			if ( mGameBoard->GetTileType(mTileIndexPicked) != WATER )
 			{
 				printf("player %i selected tile (%i, %i)\n", curPlayerID, mSelectedTilePos.r, mSelectedTilePos.q);
-
+				mPlayerMap[curPlayerID]->TakeTileOwnership(mTileIndexPicked);
 				mGameBoard->SetTileOwner(mTileIndexPicked, curPlayerID);
-				mChosenTilesMap[mSelectedTilePos] = curPlayerID;
+				chosenTilesMap[mSelectedTilePos] = curPlayerID;
 				curPlayerID = (curPlayerID + 1) % mNumPlayers;
 			}
 		}
 
+		//the game loop isnt running yet, so the selection texture wont render without this
 		mRenderComponent->RenderScene();
 	}
 }
@@ -180,9 +184,9 @@ GameManager::SelectTileFromMouse()
 }
 
 void 
-GameManager::MoveTileSelection(const int& delta_q, const int&  delta_r)
+GameManager::MoveTileSelection(const AxialCoord& offset)
 {
-	AxialCoord moved(mSelectedTilePos.r + delta_r, mSelectedTilePos.q + delta_q);
+	const AxialCoord moved = mSelectedTilePos + offset;
 	UpdateCurrentTileSelection( moved );
 }
 
@@ -200,6 +204,39 @@ GameManager::HarvestResource()
 	}
 }
 
+void //todo- return the map
+GameManager::GetAllResourcesAccessibleFromTile(const int& tileIndex)
+{
+	const auto tileOwnerID = mGameBoard->GetTileOwner(tileIndex);
+	const auto playerIter = mPlayerMap.find(tileOwnerID);
+	if (playerIter == mPlayerMap.end())
+		return;
+
+	const auto& player = playerIter->second;
+	std::unordered_map<ResourceType, int> resourcesTotals;
+	for (const auto& tile : mGameBoard->FindConnectedTilesWithSameOwner(tileOwnerID, tileIndex))
+	{
+		const int numResources = player->GetRawResourcesOnTile(tile);
+		resourcesTotals[mGameBoard->GetTileType(tile)] += numResources;
+	}
+
+	printf("tile %i, player %i :\n", tileIndex, tileOwnerID);
+	for (const auto& resource : resourcesTotals)
+	{
+		printf("\tresource %i count: %i\n", resource.first, resource.second);
+	}
+}
+
+void
+GameManager::Build()
+{
+	if ( mGameBoard->IsPositionValid(mSelectedTilePos) )
+	{
+		GetAllResourcesAccessibleFromTile( mGameBoard->GetTileIndex(mSelectedTilePos) );
+		//todo - validate resources the player has vs. what they need to build
+	}
+}
+
 void
 GameManager::GameLoop()
 {
@@ -210,6 +247,4 @@ GameManager::GameLoop()
 		for (const auto& curPlayer : mPlayerMap)
 			curPlayer.second->Tick();
 	}
-
-	mRenderComponent->Cleanup();
 }

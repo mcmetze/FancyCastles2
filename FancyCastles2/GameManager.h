@@ -1,8 +1,11 @@
-#ifndef METZE_GAME_MANAGER_H
-#define METZE_GAME_MANAGER_H
+#pragma once
 
-#include "BoardRenderer.h"
+#include <unordered_map>
 
+#include "TileTraits.h"
+
+class Board;
+class BoardRenderer;
 class Command;
 class InputHandler;
 class Player;
@@ -18,10 +21,12 @@ public:
 	void SetupPlayers();
 	void AssignPlayers();
 
-	void MoveTileSelection(const int& delta_q, const int& delta_r);
+	void MoveTileSelection(const AxialCoord& offset);
 	void SelectTileFromMouse();
 
 	void HarvestResource();
+	void Build();
+
 	void ExitGame() { mRunGameLoop = false; }
 
 private:
@@ -33,6 +38,8 @@ private:
 
 	void ClearSelection();
 	void UpdateCurrentTileSelection(const AxialCoord& pos);
+
+	void GetAllResourcesAccessibleFromTile(const int& tileIndex);
 
 	void PrintTileInfo(const int& tileID);
 
@@ -47,11 +54,8 @@ private:
 
 	AxialCoord mSelectedTilePos;
 	int mTileIndexPicked;
-	std::unordered_map<AxialCoord, int> mChosenTilesMap;
 	
 	bool mRunGameLoop;
 
 	bool mDebugPrint;
 };
-
-#endif

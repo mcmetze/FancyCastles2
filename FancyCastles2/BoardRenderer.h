@@ -1,15 +1,11 @@
-#ifndef METZE_BOARD_RENDERER_H
-#define METZE_BOARD_RENDERER_H
+#pragma once
+
 #include <GLFW/glfw3.h>
-
-#include <stdlib.h>
-#include <stdio.h>
-#include <fstream>
-#include <iostream>
-#include <assert.h>
 #include <glm.hpp>
+#include <vector>
+#include <unordered_map>
 
-#include "Board.h"
+#include "TileTraits.h"
 
 class BoardRenderer
 {
@@ -64,7 +60,5 @@ private:
 	std::vector<glm::vec2> mVertexInfo;
 	std::vector<glm::vec3> mColorInfo;
 	std::vector<glm::vec3> mColorIDs;
-	std::map<unsigned int, int> mColorToTileMap;
+	std::unordered_map<unsigned int, int> mColorToTileMap;
 };
-
-#endif

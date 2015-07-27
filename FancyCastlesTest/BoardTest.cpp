@@ -95,11 +95,7 @@ testSetTileOwner(const int& numPlayers)
 	int curPlayer = 0;
 	for (int i = 0; i < b.GetNumTiles(); ++i)
 	{
-		if (b.GetTileType(i) == WATER)
-		{
-			EXPECT_DEATH(b.SetTileOwner(i, curPlayer), "Assertion failed*");
-		}
-		else
+		if (b.GetTileType(i) != WATER)
 		{
 			b.SetTileOwner(i, curPlayer);
 			curPlayer = (curPlayer + 1) % numPlayers;

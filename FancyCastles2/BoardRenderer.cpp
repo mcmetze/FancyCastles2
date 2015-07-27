@@ -1,7 +1,12 @@
 #define GLEW_STATIC
 #include <GL/glew.h>
-
 #include "SOIL.h"
+
+#include <assert.h>
+#include <fstream>
+#include <iostream>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "BoardRenderer.h"
 

@@ -1,7 +1,7 @@
-#include "Player.h"
-#include "Hex.h"
-
 #include <cassert>
+
+#include "Player.h"
+#include "Timer.h"
 
 Player::Player(const int& id) : mPlayerID(id), mNumBills(5), mTimerLocation(0) 
 {
@@ -37,6 +37,16 @@ Player::TakeTileOwnership(const int& tileIndex)
 	mTilesOwned.insert(tileIndex);
 }
 
+int
+Player::GetRawResourcesOnTile(const int& tileIndex) const
+{
+	const auto& iter = mResourcesCount.find(tileIndex);
+	if (iter != mResourcesCount.end())
+		return iter->second;
+
+	return 0;
+}
+
 bool
 Player::SetTimerLocation(const int& tileIndex, const int& harvestRate) 
 {
@@ -57,7 +67,8 @@ Player::SetTimerLocation(const int& tileIndex, const int& harvestRate)
 void
 Player::StartHarvest()
 {
-	assert( !mTileTimer->IsBusy() );
+	assert(!mTileTimer->IsBusy());
+
 	printf("Starting harvest..\n");
 	mTileTimer->OnTimerStart();
 	mIsHarvesting = true;
@@ -67,10 +78,6 @@ void
 Player::OnHarvestFinish()
 {
 	mIsHarvesting = false;
-	if (mResourcesCount.find(mTimerLocation) == mResourcesCount.end())
-	{
-		mResourcesCount[mTimerLocation] = 0;
-	}
 	mResourcesCount[mTimerLocation] += mHarvestRateAtTimer;
 
 	printf("Done Harvest. %i resources for tile %i\n", mResourcesCount[mTimerLocation], mTimerLocation);
