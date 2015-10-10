@@ -1,4 +1,3 @@
-
 #include "Timer.h"
 
 TileTimer::TileTimer() : mTimerState(), mTimeoutSec(5.0) { }

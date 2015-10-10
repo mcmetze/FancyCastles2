@@ -11,6 +11,56 @@
 #include "BoardRenderer.h"
 
 
+namespace
+{
+
+	void
+		GetCartesianFromAxial(GLfloat& x, GLfloat& y, const AxialCoord& position)
+	{
+		//gives a little space between tiles
+		const float boarder = 0.01f;
+		const int hexSize = 1;
+		const float hexHeight = 2.0f * hexSize + boarder;
+		const float hexWidth = 0.5f * sqrt(3.0f) * hexHeight + boarder;
+
+		x = hexWidth * position.r + hexWidth / 2.f * position.q;
+		y = -0.75f*hexHeight * position.q;
+	}
+
+	unsigned int
+		GetUniqueTileColor(GLfloat& r, GLfloat& g, GLfloat& b, const int& index)
+	{
+		//convert the tile's index within the board to an RGB color
+		unsigned char redVal = (index & 0x000000FF);
+		unsigned char blueVal = (index & 0x0000FF00);
+		unsigned char greenVal = (index & 0x00FF0000);
+
+		r = redVal / 255.f;
+		g = (greenVal >> 8) / 255.f;
+		b = (blueVal >> 16) / 255.f;
+
+		return redVal | (greenVal << 8) | (blueVal << 16);
+	}
+
+	std::string
+		LoadShaderFile(const char* filename)
+	{
+		std::ifstream in(filename);
+		if (in)
+		{
+			std::string contents;
+			in.seekg(0, std::ios::end);
+			contents.resize(in.tellg());
+			in.seekg(0, std::ios::beg);
+			in.read(&contents[0], contents.size());
+			in.close();
+			return(contents);
+		}
+		throw(errno);
+	}
+
+}
+
 BoardRenderer::BoardRenderer(GLFWwindow* window, const float& width, const float& height) :
 	  mWindow(window)
 	, WINDOW_WIDTH(width)
@@ -26,14 +76,16 @@ void
 BoardRenderer::SetupTileColors(const std::vector<Color>& tileColors)
 {
 	GLfloat r, g, b;
-	size_t tileIndex = 0;
+	unsigned int tileIndex = 0;
 	for (auto color : tileColors)
 	{
 		mColorInfo.push_back(glm::vec3(color.r, color.g, color.b));
 
 		//used for picking later
-		GetUniqueTileColor(r, g, b, tileIndex++);
+		const auto rgbVal = GetUniqueTileColor(r, g, b, tileIndex);
+		mColorToTileMap[rgbVal] = tileIndex;
 		mColorIDs.push_back(glm::vec3(r, g, b));
+		tileIndex++;
 	}
 }
 
@@ -57,40 +109,12 @@ BoardRenderer::SetupTexture(const std::string& filename)
 	glUniform1i(glGetUniformLocation(mShaderProgram, "tileOutlineTex"), 0);
 }
 
-void 
-BoardRenderer::GetCartesianFromAxial(GLfloat& x, GLfloat& y, const AxialCoord& position)
-{
-	//gives a little space between tiles
-	static float boarder = 0.01f;
-	static int hexSize = 1;
-	static float hexHeight = 2.0f * hexSize + boarder;
-	static float hexWidth = 0.5f * sqrt(3.0f) * hexHeight + boarder;
-
-	x = hexWidth * position.r + hexWidth / 2.f * position.q;
-	y = -0.75f*hexHeight * position.q;
-}
-
-void 
-BoardRenderer::GetUniqueTileColor(GLfloat& r, GLfloat& g, GLfloat& b, const int& index)
-{
-	//convert the tile's index within the board to an RGB color
-	unsigned char redVal = (index & 0x000000FF);
-	unsigned char blueVal = (index & 0x0000FF00);
-	unsigned char greenVal = (index & 0x00FF0000);
-
-	r = redVal / 255.f;
-	g = (greenVal >> 8) / 255.f;
-	b = (blueVal >> 16) / 255.f;
-
-	unsigned int rgbVal = redVal | (greenVal << 8) | (blueVal << 16);
-	mColorToTileMap[rgbVal] = index;
-}
-
 int 
-BoardRenderer::GetTileFromPick(const unsigned int& rgbVal)
+BoardRenderer::GetTileFromPick(const unsigned int& rgbVal) const
 {
-	if (mColorToTileMap.find(rgbVal) != mColorToTileMap.end())
-		return mColorToTileMap[rgbVal];
+	const auto foundTileIter = mColorToTileMap.find(rgbVal);
+	if (foundTileIter != mColorToTileMap.end())
+		return foundTileIter->second;
 
 	return INT_MAX;
 }
@@ -106,6 +130,7 @@ BoardRenderer::DoPick()
 
 	//clear to white because black is generated in the unique tile colors for index 0
 	glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+
 	//use the color buffer with the unique tile colors
 	mColorBufferPtr = &mColorIDs;
 	RenderPass();
@@ -125,7 +150,7 @@ BoardRenderer::DoPick()
 }
 
 GLuint 
-BoardRenderer::LoadTexture(std::string imagePath)
+BoardRenderer::LoadTexture(std::string imagePath) const
 {
 	GLuint texture = SOIL_load_OGL_texture(imagePath.c_str(), SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_INVERT_Y);
 	glBindTexture(GL_TEXTURE_2D, texture);
@@ -139,14 +164,14 @@ BoardRenderer::LoadTexture(std::string imagePath)
 }
 
 void 
-BoardRenderer::BindTexture(GLenum TextureUnit, GLuint tex)
+BoardRenderer::BindTexture(GLenum TextureUnit, GLuint tex) const
 {
 	glActiveTexture(TextureUnit);
 	glBindTexture(GL_TEXTURE_2D, tex);
 }
 
 bool 
-BoardRenderer::CheckShader(const GLuint& shader)
+BoardRenderer::CheckShader(const GLuint& shader) const
 {
 	GLint isCompiled = 0;
 	glGetShaderiv(shader, GL_COMPILE_STATUS, &isCompiled);
@@ -163,23 +188,6 @@ BoardRenderer::CheckShader(const GLuint& shader)
 	}
 
 	return true;
-}
-
-std::string 
-BoardRenderer::LoadShaderFile(const char* filename)
-{
-	std::ifstream in(filename);
-	if (in)
-	{
-		std::string contents;
-		in.seekg(0, std::ios::end);
-		contents.resize(in.tellg());
-		in.seekg(0, std::ios::beg);
-		in.read(&contents[0], contents.size());
-		in.close();
-		return(contents);
-	}
-	throw(errno);
 }
 
 void 
@@ -315,7 +323,6 @@ BoardRenderer::RenderScene()
 
 	glfwSwapBuffers(mWindow);
 	glfwPollEvents();
-	//glfwWaitEvents();
 }
 
 

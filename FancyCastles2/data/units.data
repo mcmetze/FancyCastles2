@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+
+<!-- A unit is similar to a resource, but has additional properties and is not always consumable. -->
+<unit time="1">
+	<type>OXEN</type>
+	<requires type="Building">SAWMILL</requires>
+	<requires type="Resource" quantity="1">GRAIN</requires>
+</unit>
+<unit time="1">
+	<type>HORSE</type>
+	<requires type="Building">STABLE</requires>
+	<requires type="Resource" quantity="5">WHEAT</requires>
+</unit>
+<unit time="1">
+	<type>BISON</type>
+	<requires type="Building">FORT</requires>
+	<requires type="Resource" quantity="5">GRASS</requires>
+</unit>
+<unit time="1">
+	<type category="military" attack="0" health="1">GUARD</type>
+	<requires type="Building">FORT</requires>
+	<requires type="Resource" quantity="3">WOOD</requires>
+</unit>
+<unit time="1">
+	<type category="military" attack="1" health="1">SOLDIER</type>
+	<requires type="Building">FORT</requires>
+	<requires type="Resource" quantity="1">METAL</requires>
+</unit>
+<unit time="1">
+	<type category="military" attack="1" health="1">RAIDER</type>
+	<requires type="Building">STABLE</requires>
+	<requires type="Unit">HORSE</requires>
+</unit>

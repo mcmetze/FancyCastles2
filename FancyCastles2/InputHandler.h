@@ -13,8 +13,8 @@ public:
 	InputHandler(GLFWwindow* window);
 	~InputHandler();
 
-	void HandleMouseClick(int buton);
-	void HandleKeyPress(int key);
+	void HandleMouseClick(int buton) const;
+	void HandleKeyPress(int key) const;
 
 	void SetGameManager(GameManager* gm);
 	

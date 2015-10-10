@@ -28,16 +28,12 @@ public:
 
 private:
 
-	void GetCartesianFromAxial(GLfloat& x, GLfloat& y, const AxialCoord& position);
-	void GetUniqueTileColor(GLfloat& r, GLfloat& g, GLfloat& b, const int& index);
+	int GetTileFromPick(const unsigned int& rgbVal) const;
 
-	int GetTileFromPick(const unsigned int& rgbVal);
+	GLuint LoadTexture(std::string imagePath) const;
+	void BindTexture(GLenum TextureUnit, GLuint tex) const;
 
-	GLuint LoadTexture(std::string imagePath);
-	void BindTexture(GLenum TextureUnit, GLuint tex);
-
-	bool CheckShader(const GLuint& shader);
-	std::string LoadShaderFile(const char* filename);
+	bool CheckShader(const GLuint& shader) const;
 
 	void RenderPass();
 

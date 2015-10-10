@@ -2,23 +2,20 @@
 
 #include "Board.h"
 #include "BoardRenderer.h"
-#include "InputHandler.h"
 #include "Player.h"
 
-GameManager::GameManager(const int& numPlayers, std::unique_ptr<BoardRenderer> renderer, std::unique_ptr<InputHandler> inputhandler)
+#include <iostream>
+
+GameManager::GameManager(const int& numPlayers, std::unique_ptr<BoardRenderer> renderer)
 	: mNumPlayers(numPlayers)
 	, mRenderComponent(std::move(renderer))
-	, mInputHandler(std::move(inputhandler))
 	, mRunGameLoop(true)
-	, mDebugPrint(false)
 {
-	ClearSelection();
-
 	CreatePlayers();
 	CreateGameBoard();
 	SetupRenderer();
 
-	mInputHandler->SetGameManager(this);
+	mSelection.SetBoard(mGameBoard.get());
 }
 
 GameManager::~GameManager()
@@ -70,17 +67,14 @@ GameManager::GetVertexColorFromType(const ResourceType& tileType)
 		tileColor.g = 1.f;
 		break;
 	case WHEAT:
-		tileColor.r = 1.f;
-		tileColor.g = 1.f;
+		tileColor.r = tileColor.g = 1.f;
 		break;
 	case TREE:
 		tileColor.r = 0.6f;
 		tileColor.g = 0.29f;
 		break;
 	case ORE:
-		tileColor.r = 0.47f;
-		tileColor.g = 0.47f;
-		tileColor.b = 0.47f;
+		tileColor.r = tileColor.g = tileColor.b = 0.47f;
 		break;
 	default:
 		break;
@@ -97,7 +91,7 @@ GameManager::SetupRenderer()
 	mRenderComponent->SetupShaders();
 	mRenderComponent->SetupAttributes();
 	mRenderComponent->SetupTexture("TileOutline.png");
-	mRenderComponent->SetSelection(mSelectedTilePos);
+	mRenderComponent->SetSelection(mSelection.GetSelectionPos());
 }
 
 void 
@@ -116,88 +110,45 @@ GameManager::AssignPlayers()
 }
 
 void
-GameManager::SetupPlayers()
-{
-	int curPlayerID = 0;
-	const int numTilesToSelect = mNumPlayers*(NUMTYPES - 1);
-
-	std::unordered_map<AxialCoord, int> chosenTilesMap;
-	while ( chosenTilesMap.size() < numTilesToSelect )
-	{
-		if ( mGameBoard->IsPositionValid(mSelectedTilePos) && chosenTilesMap.find(mSelectedTilePos) == chosenTilesMap.end() )
-		{
-			if ( mGameBoard->GetTileType(mTileIndexPicked) != WATER )
-			{
-				printf("player %i selected tile (%i, %i)\n", curPlayerID, mSelectedTilePos.r, mSelectedTilePos.q);
-				mPlayerMap[curPlayerID]->TakeTileOwnership(mTileIndexPicked);
-				mGameBoard->SetTileOwner(mTileIndexPicked, curPlayerID);
-				chosenTilesMap[mSelectedTilePos] = curPlayerID;
-				curPlayerID = (curPlayerID + 1) % mNumPlayers;
-			}
-		}
-
-		//the game loop isnt running yet, so the selection texture wont render without this
-		mRenderComponent->RenderScene();
-	}
-}
-
-void
-GameManager::PrintTileInfo(const int&  tileID)
+GameManager::PrintTileInfo(const int&  tileID) const
 {
 	mGameBoard->PrintTileInfo(tileID);
-}
-
-void
-GameManager::ClearSelection()
-{
-	mSelectedTilePos = { INT_MAX, INT_MAX };
-	mTileIndexPicked = INT_MAX;
-	mRenderComponent->SetSelection(mSelectedTilePos);
-}
-
-void 
-GameManager::UpdateCurrentTileSelection(const AxialCoord& pos)
-{
-	if ( mGameBoard->IsPositionValid(pos) )
-	{
-		mSelectedTilePos = pos;
-		mTileIndexPicked = mGameBoard->GetTileIndex(pos);
-		mRenderComponent->SetSelection(mSelectedTilePos);
-
-		if ( mDebugPrint )
-			PrintTileInfo(mTileIndexPicked);
-	}
 }
 
 void
 GameManager::SelectTileFromMouse()
 {
 	const auto pickedIndex = mRenderComponent->DoPick();
-	if ( pickedIndex >= 0 && pickedIndex <= mGameBoard->GetNumTiles() )
-	{
-		UpdateCurrentTileSelection(mGameBoard->GetTileCoord(pickedIndex));
-	}
-	else
-	{
-		ClearSelection();
-	}
+	mSelection.Update(pickedIndex);
+	if ( !mSelection.IsValid() )
+		mSelection.Clear();
+	
+	mRenderComponent->SetSelection(mSelection.GetSelectionPos());
 }
 
 void 
 GameManager::MoveTileSelection(const AxialCoord& offset)
 {
-	const AxialCoord moved = mSelectedTilePos + offset;
-	UpdateCurrentTileSelection( moved );
+	const AxialCoord moved = mSelection.GetSelectionPos() + offset;
+	mSelection.Update(moved);
+	if ( !mSelection.IsValid() )
+		return;
+
+	mRenderComponent->SetSelection(mSelection.GetSelectionPos());
 }
 
 void
 GameManager::HarvestResource()
 {
-	if ( mGameBoard->IsPositionValid(mSelectedTilePos) && mGameBoard->GetTileType(mTileIndexPicked) != WATER )
+	if ( !mSelection.IsValid() )
+		return;
+	
+	const auto& selectedIndex = mSelection.GetSelectionIndex();
+	if (mGameBoard->GetTileType(selectedIndex) != WATER)
 	{
-		const auto tileOwnerID = mGameBoard->GetTileOwner(mTileIndexPicked);
+		const auto tileOwnerID = mGameBoard->GetTileOwner(selectedIndex);
 		const auto& player = mPlayerMap[tileOwnerID];
-		if ( player && player->SetTimerLocation(mTileIndexPicked, mGameBoard->GetHarvestRate(mTileIndexPicked)) )
+		if ( player && player->SetTimerLocation(selectedIndex, mGameBoard->GetHarvestRate(selectedIndex)) )
 		{
 			player->StartHarvest();
 		}
@@ -230,11 +181,11 @@ GameManager::GetAllResourcesAccessibleFromTile(const int& tileIndex)
 void
 GameManager::Build()
 {
-	if ( mGameBoard->IsPositionValid(mSelectedTilePos) )
-	{
-		GetAllResourcesAccessibleFromTile( mGameBoard->GetTileIndex(mSelectedTilePos) );
-		//todo - validate resources the player has vs. what they need to build
-	}
+	if (!mSelection.IsValid())
+		return;
+
+	GetAllResourcesAccessibleFromTile( mSelection.GetSelectionIndex() );
+	//todo - validate resources the player has vs. what they need to build
 }
 
 void
@@ -247,4 +198,10 @@ GameManager::GameLoop()
 		for (const auto& curPlayer : mPlayerMap)
 			curPlayer.second->Tick();
 	}
+}
+
+void
+GameManager::ExitGame()
+{
+	mRunGameLoop = false;
 }

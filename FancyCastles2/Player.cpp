@@ -34,7 +34,9 @@ Player::Tick()
 void 
 Player::TakeTileOwnership(const int& tileIndex)
 {
-	mTilesOwned.insert(tileIndex);
+	auto ownedTilesIter = mTilesOwned.find(tileIndex);
+	if (ownedTilesIter == mTilesOwned.end())
+		mTilesOwned.insert(tileIndex);
 }
 
 int

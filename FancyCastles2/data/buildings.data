@@ -1,0 +1,26 @@
+
+<?xml version="1.0"?>
+
+<!-- A building is created from a specific set of resources and does not move once created. -->
+<building time="1">
+	<type>FORGE</type>
+	<requires type="Resource" quantity="1">WOOD</requires>
+	<requires type="Unit" quantity="1">BISON</requires>
+</building>
+<building time="1">
+	<type>HARBOR</type>
+	<requires type="Tile">WATER</requires>
+	<requires type="Resource" quantity="3">WOOD</requires>
+</building>
+<building time="1">
+	<type>SAWMILL</type>
+	<requires type="Resource" quantity="8">ORE</requires>
+</building>
+<building time="1">
+	<type>STABLE</type>
+	<requires type="Resource" quantity="8">GRAIN</requires>
+</building>
+<building time="1">
+	<type>FORT</type>
+	<requires type="Resource" quantity="8">WOOD</requires>
+</building>

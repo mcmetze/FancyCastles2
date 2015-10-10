@@ -4,7 +4,6 @@
 #include <queue>
 
 #include "Board.h"
-//#include "Tile.h"
 
 Board::Board():
 	  mNumTiles(0)
@@ -152,6 +151,11 @@ Board::GetHarvestRate(const int& tileIndex) const
 	return mTiles[tileIndex]->GetHarvestRate();
 }
 
+static const std::vector<AxialCoord> adjacentOffsets =
+{
+	{ -1, 0 }, { -1, 1 }, { 0, -1 },
+	{ 1, 0 }, { 1, -1 }, { 0, 1 }
+};
 
 std::unordered_set<int>
 Board::GetNeighbors(const int& tileIndex) const
@@ -160,13 +164,8 @@ Board::GetNeighbors(const int& tileIndex) const
 	if (tileIndex < 0 || tileIndex > mNumTiles)
 		return neighbors;
 
-	const std::vector<AxialCoord> offsets = 
-	{
-		{ -1, 0 }, { -1,  1 }, {0, -1},
-		{  1, 0 }, {  1, -1 }, {0,  1}
-	};
 	const auto position = GetTileCoord(tileIndex);
-	for (auto& offset : offsets)
+	for (auto& offset : adjacentOffsets)
 	{
 		AxialCoord neighbor = position + offset;
 		if ( IsPositionValid(neighbor) )

@@ -1,0 +1,26 @@
+
+<?xml version="1.0"?>
+
+<!-- A resource is the direct output from harvesting a tile.  -->
+<!-- Resources are consumed to create buildings or units -->
+<resource time="1">
+	<type>WOOD</type>
+	<requires type="Tile">FOREST</requires>
+</resource>
+<resource time="1">
+	<type>ORE</type>
+	<requires type="Tile">MOUNTAIN</requires>
+</resource>
+<resource time="1">
+	<type>GRAIN</type>
+	<requires type="Tile">FIELD</requires>
+</resource>
+<resource time="1">
+	<type>GRASS</type>
+	<requires type="Tile">MEADOW</requires>
+</resource>
+<resource time="1">
+	<type>METAL</type>
+	<requires type="Building">FORGE</requires>
+	<requires type="Resource" quantity="5">ORE</requires>
+</resource>

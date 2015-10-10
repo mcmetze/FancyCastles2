@@ -1,0 +1,115 @@
+<?xml version="1.0"?>
+<tiles>
+	<type>FIELD</type>
+	<type>MOUNTAIN</type>
+	<type>FOREST</type>
+	<type>MEADOW</type>
+	<type>WATER</type>
+</tiles>
+
+<entities>
+	<!-- A resource is the direct output from harvesting a tile.  -->
+	<!-- Resources are consumed to create buildings or units -->
+	<resource time="1">
+		<type>WOOD</type>
+		<requires type="Tile">FOREST</requires>
+	</resource>
+	<resource time="1">
+		<type>ORE</type>
+		<requires type="Tile">MOUNTAIN</requires>
+	</resource>
+	<resource time="1">
+		<type>GRAIN</type>
+		<requires type="Tile">FIELD</requires>
+	</resource>
+	<resource time="1">
+		<type>GRASS</type>
+		<requires type="Tile">MEADOW</requires>
+	</resource>
+	<resource time="1">
+		<type>METAL</type>
+		<requires type="Building">FORGE</requires>
+		<requires type="Resource" quantity="5">ORE</requires>
+	</resource>
+
+	<!-- A building is created from a specific set of resources and does not move once created. -->
+	<building time="1">
+		<type>FORGE</type>
+		<requires type="Resource" quantity="1">WOOD</requires>
+		<requires type="Unit" quantity="1">BISON</requires>
+	</building>
+	<building time="1">
+		<type>HARBOR</type>
+		<requires type="Tile">WATER</requires>
+		<requires type="Resource" quantity="3">WOOD</requires>
+	</building>
+	<building time="1">
+		<type>SAWMILL</type>
+		<requires type="Resource" quantity="8">ORE</requires>
+	</building>
+	<building time="1">
+		<type>STABLE</type>
+		<requires type="Resource" quantity="8">GRAIN</requires>
+	</building>
+	<building time="1">
+		<type>FORT</type>
+		<requires type="Resource" quantity="8">WOOD</requires>
+	</building>
+
+	<!-- A unit is similar to a resource, but has additional properties and is not always consumable. -->
+	<unit time="1">
+		<type>OXEN</type>
+		<requires type="Building">SAWMILL</requires>
+		<requires type="Resource" quantity="1">GRAIN</requires>
+	</unit>
+	<unit time="1">
+		<type>HORSE</type>
+		<requires type="Building">STABLE</requires>
+		<requires type="Resource" quantity="5">WHEAT</requires>
+	</unit>
+	<unit time="1">
+		<type>BISON</type>
+		<requires type="Building">FORT</requires>
+		<requires type="Resource" quantity="5">GRASS</requires>
+	</unit>
+	<unit time="1">
+		<type category="military" attack="0" health="1">GUARD</type>
+		<requires type="Building">FORT</requires>
+		<requires type="Resource" quantity="3">WOOD</requires>
+	</unit>
+	<unit time="1">
+		<type category="military" attack="1" health="1">SOLDIER</type>
+		<requires type="Building">FORT</requires>
+		<requires type="Resource" quantity="1">METAL</requires>
+	</unit>
+	<unit time="1">
+		<type category="military" attack="1" health="1">RAIDER</type>
+		<requires type="Building">STABLE</requires>
+		<requires type="Unit">HORSE</requires>
+	</unit>
+</entities>
+
+<castles>
+	<castle time='1'>
+		<type>YURT</type>
+		<requires type="Unit" quanitity="6">HORSE</requires>
+	</castle>
+	<castle time='1'>
+		<type>LUXURY</type>
+		<requires type="Unit">HORSE</requires>
+		<requires type="Unit">METAL</requires>
+		<requires type="Unit">BISON</requires>
+		<requires type="Unit">WOOD</requires>
+	</castle>
+	<castle time='1'>
+	 	<type>COZY</type>
+	 	<requires type="Unit" quanitity="4">BISON</requires>
+		<requires type="Bills">20</requires>
+	</castle>
+	<castle time='1'>
+		<type>STURDY'</type>
+		<requires type="Unit">METAL</requires>
+		<requires type="Bills">20</requires>
+	</castle>
+</castles>
+

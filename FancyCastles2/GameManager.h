@@ -6,56 +6,53 @@
 
 class Board;
 class BoardRenderer;
-class Command;
 class InputHandler;
 class Player;
 
 class GameManager
 {
 public:
-	GameManager(const int&, std::unique_ptr<BoardRenderer> renderer, std::unique_ptr<InputHandler> input);
+	GameManager(const int& numPlayers, std::unique_ptr<BoardRenderer> renderer);
 	~GameManager();
 
+	//Game control methods
 	void GameLoop();
+	void ExitGame();
 
+	//Player setup methods
 	void SetupPlayers();
 	void AssignPlayers();
 
+	//Selection related methods
 	void MoveTileSelection(const AxialCoord& offset);
 	void SelectTileFromMouse();
 
+	//Player action methods
 	void HarvestResource();
 	void Build();
 
-	void ExitGame() { mRunGameLoop = false; }
-
 private:
+	//Creation helper methods
 	void CreateGameBoard();
 	void CreatePlayers();
 
-	void SetupRenderer();
-	void SetupTiles();
-
-	void ClearSelection();
-	void UpdateCurrentTileSelection(const AxialCoord& pos);
-
-	void GetAllResourcesAccessibleFromTile(const int& tileIndex);
-
-	void PrintTileInfo(const int& tileID);
-
+	//Rendering related methods
 	Color GetVertexColorFromType(const ResourceType& tileType);
+	void SetupRenderer();
+
+	//Tile related methods
+	void SetupTiles();
+	void GetAllResourcesAccessibleFromTile(const int& tileIndex);
+	void PrintTileInfo(const int& tileID) const;
+
 
 	std::unique_ptr<BoardRenderer> mRenderComponent;
-	std::unique_ptr<InputHandler> mInputHandler;
 	std::unique_ptr<Board> mGameBoard;
 	
 	int mNumPlayers;
 	std::unordered_map<int, std::unique_ptr<Player> > mPlayerMap;
 
-	AxialCoord mSelectedTilePos;
-	int mTileIndexPicked;
+	TileSelection mSelection;
 	
 	bool mRunGameLoop;
-
-	bool mDebugPrint;
 };

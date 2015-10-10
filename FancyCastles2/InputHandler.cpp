@@ -55,7 +55,7 @@ InputHandler::SetGameManager(GameManager* gm)
 }
 
 void
-InputHandler::HandleKeyPress(int key)
+InputHandler::HandleKeyPress(int key) const
 {
 	const auto command = mKeyboardInputMap.find(key);
 	if (command != mKeyboardInputMap.end())
@@ -63,7 +63,7 @@ InputHandler::HandleKeyPress(int key)
 }
 
 void 
-InputHandler::HandleMouseClick(int button)
+InputHandler::HandleMouseClick(int button) const
 {
 	const auto command = mMouseInputMap.find(button);
 	if (command != mMouseInputMap.end())

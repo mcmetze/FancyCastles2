@@ -7,9 +7,9 @@
 #include "GameManager.h"
 #include "InputHandler.h"
 
-static const float WINDOW_WIDTH = 1366;
-static const float WINDOW_HEIGHT = 768;
-static const float ASPECT_RATIO = WINDOW_WIDTH / WINDOW_HEIGHT;
+const float WINDOW_WIDTH = 1366;
+const float WINDOW_HEIGHT = 768;
+const float ASPECT_RATIO = WINDOW_WIDTH / WINDOW_HEIGHT;
 
 
 static void error_callback(int error, const char* description)
@@ -42,21 +42,19 @@ int main(void)
 	{
 		exit(EXIT_FAILURE);
 	}
+	
+	const int NUM_PLAYERS = 6;
+	std::unique_ptr<BoardRenderer> gameRenderer = std::make_unique<BoardRenderer>(window, WINDOW_WIDTH, WINDOW_HEIGHT);
+	std::unique_ptr<InputHandler> inputHandler = std::make_unique<InputHandler>(window);
+	glfwSetWindowUserPointer( window, inputHandler.get() );
 
-	{
-		const int NUM_PLAYERS = 6;
-		std::unique_ptr<BoardRenderer> gameRenderer = std::make_unique<BoardRenderer>(window, WINDOW_WIDTH, WINDOW_HEIGHT);
-		std::unique_ptr<InputHandler> inputHandler = std::make_unique<InputHandler>(window);
-		glfwSetWindowUserPointer( window, inputHandler.get() );
-
-		GameManager game(NUM_PLAYERS, std::move(gameRenderer), std::move(inputHandler));
-		//game.SetupPlayers();
-		game.AssignPlayers();
-		game.GameLoop();
-	}
+	GameManager game(NUM_PLAYERS, std::move(gameRenderer));
+	inputHandler->SetGameManager(&game);
+	game.AssignPlayers();
+	game.GameLoop();
+	
 
 	glfwDestroyWindow(window);
 	glfwTerminate();
-	exit(EXIT_SUCCESS);
 }
 

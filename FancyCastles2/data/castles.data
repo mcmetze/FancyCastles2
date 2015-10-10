@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+
+<castle time='1'>
+	<type>YURT</type>
+	<requires type="Unit" quanitity="6">HORSE</requires>
+</castle>
+<castle time='1'>
+	<type>LUXURY</type>
+	<requires type="Unit">HORSE</requires>
+	<requires type="Unit">METAL</requires>
+	<requires type="Unit">BISON</requires>
+	<requires type="Unit">WOOD</requires>
+</castle>
+<castle time='1'>
+ 	<type>COZY</type>
+ 	<requires type="Unit" quanitity="4">BISON</requires>
+	<requires type="Bills">20</requires>
+</castle>
+<castle time='1'>
+	<type>STURDY'</type>
+	<requires type="Unit">METAL</requires>
+	<requires type="Bills">20</requires>
+</castle>
