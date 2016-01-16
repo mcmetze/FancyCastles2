@@ -16,7 +16,7 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v120</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
@@ -39,7 +39,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <TargetExt>.exe</TargetExt>
+    <TargetExt>.lib</TargetExt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <TargetExt>.exe</TargetExt>
@@ -67,7 +67,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>C:\dev\glew-1.11.0\include;C:\dev\glfw-3.0.4.bin.WIN32\include;C:\dev\glm\glm;C:\dev\SOIL\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\dev\glew-1.11.0\include;C:\dev\glfw-3.0.4.bin.WIN32\include;C:\dev\glm\glm;C:\dev\SOIL\src;C:\dev\pugixml-1.6\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
@@ -81,24 +81,33 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Board.cpp" />
+    <ClCompile Include="BoardController.cpp" />
     <ClCompile Include="BoardRenderer.cpp" />
     <ClCompile Include="Commands.cpp" />
     <ClCompile Include="FancyCastles.cpp" />
     <ClCompile Include="GameManager.cpp" />
+    <ClCompile Include="GameObject.cpp" />
+    <ClCompile Include="Observer.cpp" />
+    <ClCompile Include="PlayerController.cpp" />
     <ClCompile Include="Tile.cpp" />
     <ClCompile Include="InputHandler.cpp" />
     <ClCompile Include="Player.cpp" />
+    <ClCompile Include="TileChooser.cpp" />
     <ClCompile Include="Timer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Board.h" />
+    <ClInclude Include="BoardController.h" />
     <ClInclude Include="BoardRenderer.h" />
     <ClInclude Include="Commands.h" />
     <ClInclude Include="GameManager.h" />
+    <ClInclude Include="GameObject.h" />
+    <ClInclude Include="PlayerController.h" />
     <ClInclude Include="Tile.h" />
     <ClInclude Include="InputHandler.h" />
     <ClInclude Include="Observer.h" />
     <ClInclude Include="Player.h" />
+    <ClInclude Include="TileChooser.h" />
     <ClInclude Include="TileTraits.h" />
     <ClInclude Include="Timer.h" />
   </ItemGroup>

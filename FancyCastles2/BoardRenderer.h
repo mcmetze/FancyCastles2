@@ -7,26 +7,30 @@
 
 #include "TileTraits.h"
 
+class Board;
+
 class BoardRenderer
 {
 
 public:
+	BoardRenderer(GLFWwindow*, int, int);
+	void Init();
 
-	BoardRenderer(GLFWwindow*, const float&, const float&);
+	void SetupTiles(const Board& gameBoard);
+	void SetSelection(const AxialCoord& position);
 
+	int DoPick();
+	void RenderScene();
+
+	void Cleanup();
+
+private:
 	void SetupHexVerts(const std::vector<AxialCoord>& tileCoords);
 	void SetupTileColors(const std::vector<Color>& tileColors);
 	void SetupBuffers();
 	void SetupShaders();
 	void SetupAttributes();
 	void SetupTexture(const std::string&);
-
-	void SetSelection(const AxialCoord& position);
-	int DoPick();
-	void RenderScene();
-	void Cleanup();
-
-private:
 
 	int GetTileFromPick(const unsigned int& rgbVal) const;
 

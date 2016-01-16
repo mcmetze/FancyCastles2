@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "Board.h"
 #include "BoardRenderer.h"
 
 
@@ -15,7 +16,7 @@ namespace
 {
 
 	void
-		GetCartesianFromAxial(GLfloat& x, GLfloat& y, const AxialCoord& position)
+	GetCartesianFromAxial(GLfloat& x, GLfloat& y, const AxialCoord& position)
 	{
 		//gives a little space between tiles
 		const float boarder = 0.01f;
@@ -28,7 +29,7 @@ namespace
 	}
 
 	unsigned int
-		GetUniqueTileColor(GLfloat& r, GLfloat& g, GLfloat& b, const int& index)
+	GetUniqueTileColor(GLfloat& r, GLfloat& g, GLfloat& b, const int& index)
 	{
 		//convert the tile's index within the board to an RGB color
 		unsigned char redVal = (index & 0x000000FF);
@@ -43,7 +44,7 @@ namespace
 	}
 
 	std::string
-		LoadShaderFile(const char* filename)
+	LoadShaderFile(const char* filename)
 	{
 		std::ifstream in(filename);
 		if (in)
@@ -59,9 +60,39 @@ namespace
 		throw(errno);
 	}
 
+	Color
+	GetVertexColorFromType(const ResourceType& tileType)
+	{
+		//placeholder method to verify
+		Color tileColor;
+		switch (tileType)
+		{
+		case ResourceType::WATER:
+			tileColor.b = 1.f;
+			break;
+		case ResourceType::GRASS:
+			tileColor.g = 1.f;
+			break;
+		case ResourceType::WHEAT:
+			tileColor.r = tileColor.g = 1.f;
+			break;
+		case ResourceType::TREE:
+			tileColor.r = 0.6f;
+			tileColor.g = 0.29f;
+			break;
+		case ResourceType::ORE:
+			tileColor.r = tileColor.g = tileColor.b = 0.47f;
+			break;
+		default:
+			break;
+		}
+
+		return tileColor;
+	}
+
 }
 
-BoardRenderer::BoardRenderer(GLFWwindow* window, const float& width, const float& height) :
+BoardRenderer::BoardRenderer(GLFWwindow* window, int width, int height) :
 	  mWindow(window)
 	, WINDOW_WIDTH(width)
 	, WINDOW_HEIGHT(height)
@@ -72,6 +103,30 @@ BoardRenderer::BoardRenderer(GLFWwindow* window, const float& width, const float
 {
 }
 
+void
+BoardRenderer::Init()
+{
+	SetupBuffers();
+	SetupShaders();
+	SetupAttributes();
+	SetupTexture("TileOutline.png");
+}
+
+void
+BoardRenderer::SetupTiles(const Board& gameBoard)
+{
+	std::vector<AxialCoord> tileCoords;
+	std::vector<Color> tileColors;
+	for (int tileIndex = 0; tileIndex < gameBoard.GetNumTiles(); ++tileIndex)
+	{
+		tileCoords.push_back(gameBoard.GetTileCoord(tileIndex));
+		tileColors.push_back(GetVertexColorFromType(gameBoard.GetTileType(tileIndex)));
+	}
+	
+	SetupTileColors(tileColors);
+	SetupHexVerts(tileCoords);
+}
+
 void 
 BoardRenderer::SetupTileColors(const std::vector<Color>& tileColors)
 {
@@ -79,12 +134,18 @@ BoardRenderer::SetupTileColors(const std::vector<Color>& tileColors)
 	unsigned int tileIndex = 0;
 	for (auto color : tileColors)
 	{
+		// save the actual display color for rendering
 		mColorInfo.push_back(glm::vec3(color.r, color.g, color.b));
 
-		//used for picking later
+		// determine the tile's unique color based on it's index and
+		// map it so it can be queried easily on a pick
 		const auto rgbVal = GetUniqueTileColor(r, g, b, tileIndex);
 		mColorToTileMap[rgbVal] = tileIndex;
+
+		// save the unique color into a separate buffer that can be
+		// swapped out to do the pick
 		mColorIDs.push_back(glm::vec3(r, g, b));
+
 		tileIndex++;
 	}
 }

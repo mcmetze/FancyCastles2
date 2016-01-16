@@ -3,56 +3,51 @@
 #include <unordered_map>
 
 #include "TileTraits.h"
+#include "Observer.h"
 
-class Board;
 class BoardRenderer;
-class InputHandler;
-class Player;
+class BoardController;
+class GameObject;
+class PlayerController;
 
-class GameManager
+struct TimerResult;
+
+using BoardRendererPtr = std::unique_ptr<BoardRenderer>;
+using BoardControllerPtr = std::unique_ptr<BoardController>;
+using GameObjectPtr = std::shared_ptr < GameObject > ;
+using PlayerControllerPtr = std::shared_ptr<PlayerController>;
+
+class GameManager : public Observer
 {
 public:
-	GameManager(const int& numPlayers, std::unique_ptr<BoardRenderer> renderer);
+	GameManager(const GameManager&) = delete;
+	GameManager& operator=(const GameManager& rhs) = delete;
+
+	GameManager(BoardRendererPtr renderComponent, BoardControllerPtr boardController, PlayerControllerPtr playerController);
 	~GameManager();
 
-	//Game control methods
-	void GameLoop();
-	void ExitGame();
+	void OnNotify(TimerResultPtr result) override;
+	void OnNotify(Command* cmd) override;
 
-	//Player setup methods
-	void SetupPlayers();
-	void AssignPlayers();
-
-	//Selection related methods
-	void MoveTileSelection(const AxialCoord& offset);
-	void SelectTileFromMouse();
-
-	//Player action methods
-	void HarvestResource();
-	void Build();
+	void StartGame();
+	void StopGame();
 
 private:
-	//Creation helper methods
-	void CreateGameBoard();
-	void CreatePlayers();
-
-	//Rendering related methods
-	Color GetVertexColorFromType(const ResourceType& tileType);
-	void SetupRenderer();
-
-	//Tile related methods
-	void SetupTiles();
-	void GetAllResourcesAccessibleFromTile(const int& tileIndex);
-	void PrintTileInfo(const int& tileID) const;
-
-
-	std::unique_ptr<BoardRenderer> mRenderComponent;
-	std::unique_ptr<Board> mGameBoard;
+	void GameLoop();
 	
-	int mNumPlayers;
-	std::unordered_map<int, std::unique_ptr<Player> > mPlayerMap;
+	GameObjectPtr CreateResourceGameObject(const TimerResult& result);
+	void MoveTileSelection(int playerID, const AxialCoord& offset);
+	void SelectTileFromMouse(int playerID);
 
-	TileSelection mSelection;
+	int GetNextObjectID();
 	
+private:
+	BoardControllerPtr mBoardController;
+	BoardRendererPtr mRenderComponent;
+	PlayerControllerPtr mPlayerController;
+
+	int mNextObjectID;
+
+	int mCurPlayerChoosing;
 	bool mRunGameLoop;
 };

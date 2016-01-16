@@ -49,12 +49,13 @@ testMakeBoardTileTypes(const int& numPlayers)
 		const auto type = b.GetTileType(i);
 		auto iter = tileTypesCount.find(type);
 		if (iter == tileTypesCount.end())
-			tileTypesCount[type] = 0;
-		tileTypesCount[type]++;
+			tileTypesCount[type] = 1;
+		else
+			iter->second++;
 	}
 	for (auto type : tileTypesCount)
 	{
-		if (type.first != WATER)
+		if (type.first != ResourceType::WATER)
 			EXPECT_EQ(numPlayers, type.second);
 	}
 }
@@ -74,7 +75,7 @@ testMakeBoardHarvestRates(const int& numPlayers)
 	b.MakeBoard(numPlayers);
 	for (int i = 0; i < b.GetNumTiles(); ++i)
 	{
-		if (b.GetTileType(i) != WATER)
+		if (b.GetTileType(i) != ResourceType::WATER)
 			EXPECT_EQ(1, b.GetHarvestRate(i));
 	}
 }
@@ -88,36 +89,34 @@ TEST(BoardTest, testMakeBoardHarvestRates)
 }
 
 void
-testSetTileOwner(const int& numPlayers)
+testSetHarvestRates(const Board& b, int expectedRate)
 {
-	Board b;
-	b.MakeBoard(numPlayers);
-	int curPlayer = 0;
-	for (int i = 0; i < b.GetNumTiles(); ++i)
+	for (int tile = 0; tile < b.GetNumTiles(); ++tile)
 	{
-		if (b.GetTileType(i) != WATER)
-		{
-			b.SetTileOwner(i, curPlayer);
-			curPlayer = (curPlayer + 1) % numPlayers;
-		}
-	}
-
-	curPlayer = 0;
-	for (int i = 0; i < b.GetNumTiles(); ++i)
-	{
-		if (b.GetTileType(i) != WATER)
-		{
-			EXPECT_EQ(curPlayer, b.GetTileOwner(i));
-			curPlayer = (curPlayer + 1) % numPlayers;
-		}
+		if (b.GetTileType(tile) == ResourceType::WATER)
+			EXPECT_EQ(0, b.GetHarvestRate(tile));
+		else
+			EXPECT_EQ(expectedRate, b.GetHarvestRate(tile));
 	}
 }
 
-TEST(BoardTest, testSetTileOwner)
+TEST(BoardTest, testSetHarvestRates)
 {
 	for (int i = 2; i <= 10; ++i)
 	{
-		testSetTileOwner(i);
+		Board b;
+		b.MakeBoard(i);
+		
+		for (int rate = -1; rate < 5; ++rate)
+		{
+			for (int tile = 0; tile < b.GetNumTiles(); ++tile)
+			{
+				b.SetHarvestRate(tile, rate);
+			}
+
+			int expectedRate = std::max(rate, 1);
+			testSetHarvestRates(b, expectedRate);
+		}
 	}
 }
 
@@ -165,7 +164,6 @@ TEST(BoardTest, testIsPositionValid)
 
 int main(int argc, char **argv)
 {
-	//printf("Running main() from gtest_main.cc\n");
 	testing::InitGoogleTest(&argc, argv);
 	return RUN_ALL_TESTS();
 }

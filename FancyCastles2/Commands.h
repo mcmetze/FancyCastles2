@@ -2,13 +2,12 @@
 
 #include "TileTraits.h"
 
-class GameManager;
 
 class Command
 {
 public:
 	virtual ~Command() {}
-	virtual void Execute(GameManager* gm) = 0;
+	virtual void Execute() = 0;
 };
 
 class MoveSelectionCommand : public Command
@@ -16,38 +15,53 @@ class MoveSelectionCommand : public Command
 public:
 	MoveSelectionCommand(const int& dr, const int& dq);
 
-	virtual void Execute(GameManager* gm);
+	void Execute() override;
+
+	AxialCoord GetOffset() const;
 
 private:
 	AxialCoord mOffset;
 };
 
-class HarvestRawResourceCommand : public Command
+class HarvestCommand : public Command
 {
 public:
-	virtual void Execute(GameManager* gm);
+	void Execute() override;
 };
 
 class PickSelectionCommand : public Command
 {
 public:
-	virtual void Execute(GameManager* gm);
+	void Execute() override;
 };
 
 class BuildCommand : public Command
 {
 public:
-	virtual void Execute(GameManager* gm);
+	void Execute() override;
 };
 
 class NullCommand : public Command
 {
 public:
-	virtual void Execute(GameManager* gm){ }
+	void Execute() override { }
 };
 
 class ExitGameCommand : public Command
 {
 public:
-	virtual void Execute(GameManager* gm);
+	void Execute() override;
+};
+
+class ChangePlayerCommand : public Command
+{
+public:
+	ChangePlayerCommand(int playerID);
+
+	int GetPlayerID() const;
+
+	void Execute() override;
+
+private:
+	int mPlayerID;
 };

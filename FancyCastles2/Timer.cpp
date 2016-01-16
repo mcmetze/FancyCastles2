@@ -1,37 +1,58 @@
 #include "Timer.h"
 
-TileTimer::TileTimer() : mTimerState(), mTimeoutSec(5.0) { }
-
-
-void
-TileTimer::OnTimerStart()
+TimerObject::TimerObject(int timerID)
+	: GameObject(timerID, -1), mTimerID(timerID), mTimerState(), mTimeoutSec(3.0)
 {
-	mTimerState.isBusy = true;
-	mTimerState.startTime = std::clock();
+}
+
+GameObjectType
+TimerObject::GetObjectType() const
+{
+	return GameObjectType::TIMER;
 }
 
 void
-TileTimer::OnTimerDone()
+TimerObject::OnTimerStart(TimerResultPtr result)
 {
-	mTimerState.isBusy = false;
-	Notify();
+	mTimerState.mIsBusy = true;
+	mTimerState.mStartTime = std::clock();
+	mTimerState.mResult = result;
 }
 
 void
-TileTimer::Tick()
+TimerObject::OnTimerFinished()
 {
-	if (mTimerState.isBusy)
+	mTimerState.mIsBusy = false;
+	Notify(mTimerState.mResult);
+}
+
+void
+TimerObject::Tick()
+{
+	if (mTimerState.mIsBusy)
 	{
-		const auto duration = (std::clock() - mTimerState.startTime) / (double(CLOCKS_PER_SEC));
+		const auto duration = (std::clock() - mTimerState.mStartTime) / (double(CLOCKS_PER_SEC));
 		if (duration - mTimeoutSec > DBL_EPSILON)
 		{
-			OnTimerDone();
+			OnTimerFinished();
 		}
 	}
 }
 
 bool
-TileTimer::IsBusy() const
+TimerObject::IsBusy() const
 {
-	return mTimerState.isBusy; 
+	return mTimerState.mIsBusy; 
+}
+
+int
+TimerObject::GetObjectID() const
+{
+	return mTimerID;
+}
+
+void
+TimerObject::Cancel()
+{
+	mTimerState.mIsBusy = false;
 }

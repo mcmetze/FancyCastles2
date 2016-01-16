@@ -1,21 +1,19 @@
 #include "GameManager.h"
 
-#include "Board.h"
+#include "BoardController.h"
 #include "BoardRenderer.h"
-#include "Player.h"
+#include "Commands.h"
+#include "PlayerController.h"
+#include "GameObject.h"
+#include "Timer.h"
 
-#include <iostream>
-
-GameManager::GameManager(const int& numPlayers, std::unique_ptr<BoardRenderer> renderer)
-	: mNumPlayers(numPlayers)
-	, mRenderComponent(std::move(renderer))
-	, mRunGameLoop(true)
+GameManager::GameManager(BoardRendererPtr renderComponent, BoardControllerPtr boardController, PlayerControllerPtr playerController)	
+	: mRenderComponent(std::move(renderComponent))
+	, mBoardController(std::move(boardController))
+	, mPlayerController(playerController)
+	, mNextObjectID(0)
+	, mCurPlayerChoosing(1)
 {
-	CreatePlayers();
-	CreateGameBoard();
-	SetupRenderer();
-
-	mSelection.SetBoard(mGameBoard.get());
 }
 
 GameManager::~GameManager()
@@ -24,168 +22,134 @@ GameManager::~GameManager()
 }
 
 void
-GameManager::CreateGameBoard()
+GameManager::OnNotify(Command* cmd)
 {
-	mGameBoard = std::make_unique<Board>();
-	mGameBoard->MakeBoard(mNumPlayers);
-}
-
-void 
-GameManager::CreatePlayers()
-{
-	for (int playerID = 0; playerID < mNumPlayers; ++playerID)
+	auto moveSelectionCmd = dynamic_cast<MoveSelectionCommand*>(cmd);
+	if (moveSelectionCmd)
 	{
-		mPlayerMap.emplace(playerID, std::make_unique<Player>(playerID));
+		MoveTileSelection(mCurPlayerChoosing, moveSelectionCmd->GetOffset());
+		return;
+	}
+
+	auto pickCmd = dynamic_cast<PickSelectionCommand*>(cmd);
+	if (pickCmd)
+	{
+		SelectTileFromMouse(mCurPlayerChoosing);
+		return;
+	}
+
+	auto harvestCmd = dynamic_cast<HarvestCommand*>(cmd);
+	if (harvestCmd)
+	{
+		//move the timer to the player's selected tile
+		const auto harvestLocation = mBoardController->GetSelectedTileForPlayer(mCurPlayerChoosing);
+		if (!mPlayerController->MovePlayerTimer(mCurPlayerChoosing, harvestLocation))
+			return;
+
+		//setup the relevant info needed to create the resource when the timer is done
+		const auto quantity = mBoardController->GetHarvestRate(harvestLocation);
+		auto result = std::make_shared<TimerResult>(GameObjectType::RESOURCE, harvestLocation, quantity, mCurPlayerChoosing);
+		
+		//start the timer
+		mPlayerController->FlipPlayerTimer(mCurPlayerChoosing, result);
+		return;
+	}
+
+	auto buildCmd = dynamic_cast<BuildCommand*>(cmd);
+	if (buildCmd)
+	{
+		const auto playerSelection = mBoardController->GetSelectedTileForPlayer(mCurPlayerChoosing);
+		const auto playerTiles = mPlayerController->GetPlayerTiles(mCurPlayerChoosing);
+		const auto& playerConnectedTiles = mBoardController->FindConnectedComponent(playerTiles, playerSelection);
+		const auto& availableObjects = mPlayerController->GetGameObjectsFromTiles(mCurPlayerChoosing, playerConnectedTiles);
+
+		//$TODO get requested build object from parameter bag
+		//$TODO validate availableObjects meet build requirements
+
+		return;
+	}
+
+	//$TODO just a hack during development to emulate multiple players
+	//eventually, this will be grabbed from some parameter of the command
+	auto changePlayerCmd = dynamic_cast<ChangePlayerCommand*>(cmd);
+	if (changePlayerCmd)
+	{
+		const auto requestedPlayer = changePlayerCmd->GetPlayerID();
+		if (mPlayerController->GetPlayerTiles(requestedPlayer).empty())
+			return;
+
+		mCurPlayerChoosing = requestedPlayer;
+		mRenderComponent->SetSelection(mBoardController->GetSelectionCoordsForPlayer(mCurPlayerChoosing));
+		return;
+	}
+
+	auto exitCmd = dynamic_cast<ExitGameCommand*>(cmd);
+	if (exitCmd)
+	{
+		StopGame();
+		return;
 	}
 }
 
-void 
-GameManager::SetupTiles()
+void
+GameManager::OnNotify(TimerResultPtr result)
 {
-	std::vector<AxialCoord> tileCoords;	
-	std::vector<Color> tileColors;
-	for (int tileIndex = 0; tileIndex < mGameBoard->GetNumTiles(); ++tileIndex)
+	// Someone's timer finished. Create everything and hand it off to the player
+	for (int i = 0; i < result->mQuantity; ++i)
 	{
-		tileCoords.push_back(mGameBoard->GetTileCoord(tileIndex));
-		tileColors.push_back(GetVertexColorFromType(mGameBoard->GetTileType(tileIndex)));
-	}
-	mRenderComponent->SetupTileColors(tileColors);
-	mRenderComponent->SetupHexVerts(tileCoords);
-}
+		GameObjectPtr resultObject = nullptr;
 
-Color
-GameManager::GetVertexColorFromType(const ResourceType& tileType)
-{
-	//placeholder method to verify
-	Color tileColor;
-	switch (tileType)
-	{
-	case WATER:
-		tileColor.b = 1.f;
-		break;
-	case GRASS:
-		tileColor.g = 1.f;
-		break;
-	case WHEAT:
-		tileColor.r = tileColor.g = 1.f;
-		break;
-	case TREE:
-		tileColor.r = 0.6f;
-		tileColor.g = 0.29f;
-		break;
-	case ORE:
-		tileColor.r = tileColor.g = tileColor.b = 0.47f;
-		break;
-	default:
-		break;
-	}
-
-	return tileColor;
-}
-
-void 
-GameManager::SetupRenderer()
-{
-	SetupTiles();
-	mRenderComponent->SetupBuffers();
-	mRenderComponent->SetupShaders();
-	mRenderComponent->SetupAttributes();
-	mRenderComponent->SetupTexture("TileOutline.png");
-	mRenderComponent->SetSelection(mSelection.GetSelectionPos());
-}
-
-void 
-GameManager::AssignPlayers()
-{
-	int curPlayerID = 0;
-	for (int tileIndex = 0; tileIndex < mGameBoard->GetNumTiles(); ++tileIndex)
-	{
-		if (mGameBoard->GetTileType(tileIndex) != WATER)
+		switch (result->mResultObjectType)
 		{
-			mPlayerMap[curPlayerID]->TakeTileOwnership(tileIndex);
-			mGameBoard->SetTileOwner(tileIndex, curPlayerID);
-			curPlayerID = (curPlayerID + 1) % mNumPlayers;
+		case GameObjectType::RESOURCE:
+			resultObject = CreateResourceGameObject(*result);
+			break;
 		}
+
+		if (resultObject != nullptr)
+			mPlayerController->AddGameObjectToPlayer(resultObject, result->mPlayerID);
 	}
+
+	//$TODO also let the renderer know stuff changed
+}
+
+GameObjectPtr
+GameManager::CreateResourceGameObject(const TimerResult& result)
+{
+	const auto resourceType = mBoardController->GetTileType(result.mResultLocation);
+	const auto objectID = GetNextObjectID();
+	assert(objectID > 0);
+
+	return std::make_shared<ResourceObject>(objectID, result.mResultLocation, resourceType);
+}
+
+int
+GameManager::GetNextObjectID()
+{
+	if (mNextObjectID + 1 > mNextObjectID)
+	{
+		mNextObjectID++;
+		return mNextObjectID;
+	}
+
+	//$TODO will need to try to find an open id
+	return -1;
 }
 
 void
-GameManager::PrintTileInfo(const int&  tileID) const
+GameManager::SelectTileFromMouse(int playerID)
 {
-	mGameBoard->PrintTileInfo(tileID);
-}
+	const auto pickedTile = mRenderComponent->DoPick();
 
-void
-GameManager::SelectTileFromMouse()
-{
-	const auto pickedIndex = mRenderComponent->DoPick();
-	mSelection.Update(pickedIndex);
-	if ( !mSelection.IsValid() )
-		mSelection.Clear();
-	
-	mRenderComponent->SetSelection(mSelection.GetSelectionPos());
+	mBoardController->SetSelectedTileForPlayer(playerID, pickedTile);
+	mRenderComponent->SetSelection(mBoardController->GetSelectionCoordsForPlayer(playerID));
 }
 
 void 
-GameManager::MoveTileSelection(const AxialCoord& offset)
+GameManager::MoveTileSelection(int playerID, const AxialCoord& offset)
 {
-	const AxialCoord moved = mSelection.GetSelectionPos() + offset;
-	mSelection.Update(moved);
-	if ( !mSelection.IsValid() )
-		return;
-
-	mRenderComponent->SetSelection(mSelection.GetSelectionPos());
-}
-
-void
-GameManager::HarvestResource()
-{
-	if ( !mSelection.IsValid() )
-		return;
-	
-	const auto& selectedIndex = mSelection.GetSelectionIndex();
-	if (mGameBoard->GetTileType(selectedIndex) != WATER)
-	{
-		const auto tileOwnerID = mGameBoard->GetTileOwner(selectedIndex);
-		const auto& player = mPlayerMap[tileOwnerID];
-		if ( player && player->SetTimerLocation(selectedIndex, mGameBoard->GetHarvestRate(selectedIndex)) )
-		{
-			player->StartHarvest();
-		}
-	}
-}
-
-void //todo- return the map
-GameManager::GetAllResourcesAccessibleFromTile(const int& tileIndex)
-{
-	const auto tileOwnerID = mGameBoard->GetTileOwner(tileIndex);
-	const auto playerIter = mPlayerMap.find(tileOwnerID);
-	if (playerIter == mPlayerMap.end())
-		return;
-
-	const auto& player = playerIter->second;
-	std::unordered_map<ResourceType, int> resourcesTotals;
-	for (const auto& tile : mGameBoard->FindConnectedTilesWithSameOwner(tileOwnerID, tileIndex))
-	{
-		const int numResources = player->GetRawResourcesOnTile(tile);
-		resourcesTotals[mGameBoard->GetTileType(tile)] += numResources;
-	}
-
-	printf("tile %i, player %i :\n", tileIndex, tileOwnerID);
-	for (const auto& resource : resourcesTotals)
-	{
-		printf("\tresource %i count: %i\n", resource.first, resource.second);
-	}
-}
-
-void
-GameManager::Build()
-{
-	if (!mSelection.IsValid())
-		return;
-
-	GetAllResourcesAccessibleFromTile( mSelection.GetSelectionIndex() );
-	//todo - validate resources the player has vs. what they need to build
+	mBoardController->MoveSelectionCoordsForPlayer(playerID, offset);
+	mRenderComponent->SetSelection(mBoardController->GetSelectionCoordsForPlayer(playerID));
 }
 
 void
@@ -194,14 +158,19 @@ GameManager::GameLoop()
 	while (mRunGameLoop)
 	{
 		mRenderComponent->RenderScene();
-		
-		for (const auto& curPlayer : mPlayerMap)
-			curPlayer.second->Tick();
+		mPlayerController->Tick();
 	}
 }
 
 void
-GameManager::ExitGame()
+GameManager::StartGame()
+{
+	mRunGameLoop = true;
+	GameLoop();
+}
+
+void
+GameManager::StopGame()
 {
 	mRunGameLoop = false;
 }

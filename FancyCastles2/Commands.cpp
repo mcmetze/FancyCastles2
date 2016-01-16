@@ -1,6 +1,5 @@
 #include "Commands.h"
 
-#include "GameManager.h"
 
 MoveSelectionCommand::MoveSelectionCommand(const int& dr, const int& dq)
 	: mOffset({ dq, dr })
@@ -8,31 +7,54 @@ MoveSelectionCommand::MoveSelectionCommand(const int& dr, const int& dq)
 }
 
 void
-MoveSelectionCommand::Execute(GameManager* gm)
+MoveSelectionCommand::Execute()
 {
-	gm->MoveTileSelection(mOffset);
+	//gm->MoveTileSelection(mOffset);
+}
+
+AxialCoord
+MoveSelectionCommand::GetOffset() const
+{
+	return mOffset;
 }
 
 void
-PickSelectionCommand::Execute(GameManager* gm)
+PickSelectionCommand::Execute()
 {
-	gm->SelectTileFromMouse();
+	//gm->SelectTileFromMouse();
 }
 
 void
-HarvestRawResourceCommand::Execute(GameManager* gm)
+HarvestCommand::Execute()
 {
-	gm->HarvestResource();
+	//gm->HarvestResource();
 }
 
 void
-BuildCommand::Execute(GameManager* gm)
+BuildCommand::Execute()
 {
-	gm->Build();
+	//gm->Build();
 }
 
 void
-ExitGameCommand::Execute(GameManager* gm)
+ExitGameCommand::Execute()
 {
-	gm->ExitGame();
+	//gm->ExitGame();
+}
+
+ChangePlayerCommand::ChangePlayerCommand(int playerID)
+	: mPlayerID(playerID)
+{
+}
+
+int
+ChangePlayerCommand::GetPlayerID() const
+{
+	return mPlayerID;
+}
+
+void
+ChangePlayerCommand::Execute()
+{
+
 }

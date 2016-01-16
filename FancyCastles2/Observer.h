@@ -1,39 +1,35 @@
 #pragma once
 
+#include <memory>
 #include <vector>
+
+class Command;
+struct TimerResult;
+
+using TimerResultPtr = std::shared_ptr < TimerResult > ;
 
 class Observer
 {
 public:
 	virtual ~Observer() {}
-	virtual void OnNotify() = 0;
+	virtual void OnNotify(TimerResultPtr) = 0;
+	virtual void OnNotify(Command*) = 0;
 };
 
+using ObserverPtr = std::shared_ptr < Observer > ;
+using ObserverList = std::vector < std::weak_ptr<Observer> > ;
 
-class Subject
+class Observable
 {
 public:
-	void AddObserver(Observer* obs)
-	{ 
-		mObservers.push_back(obs); 
-	}
-
-	void RemoveObserver(Observer* obs)
-	{
-		auto found = std::find(mObservers.begin(), mObservers.end(), obs);
-		if (found != mObservers.end())
-			mObservers.erase(found);
-	}
+	void AddObserver(ObserverPtr obs);
 
 private:
-	std::vector<Observer*> mObservers;
+	void RemoveDeadObservers();
+
+	ObserverList mObservers;
 
 protected:
-	void Notify()
-	{
-		for (const auto& observer : mObservers)
-		{
-			observer->OnNotify();
-		}
-	}
+	void Notify(TimerResultPtr);
+	void Notify(Command*);
 };

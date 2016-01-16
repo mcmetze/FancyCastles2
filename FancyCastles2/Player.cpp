@@ -1,95 +1,81 @@
-#include <cassert>
-
 #include "Player.h"
+
+#include "GameObject.h"
 #include "Timer.h"
 
-Player::Player(const int& id) : mPlayerID(id), mNumBills(5), mTimerLocation(0) 
+Player::Player(int playerID, TimerPtr timer, int numBills)
+	: mPlayerID(playerID), mTimer(std::move(timer)), mNumBills(numBills)
 {
-	mTileTimer = std::make_unique<TileTimer>();
-	mTileTimer->AddObserver(this);
-}
-
-Player::~Player()
-{
-	mTileTimer->RemoveObserver(this);
-}
-
-void 
-Player::PrintInfo() const
-{
-	printf("Player %i owns: ", mPlayerID);
-	for (const auto& tileIndex : mTilesOwned)
-	{
-		printf("%i ", tileIndex);
-	}
-	printf("\n");
 }
 
 void
-Player::Tick()
+Player::AddBills(int numBillsToAdd)
 {
-	mTileTimer->Tick();
+	mNumBills += numBillsToAdd;
 }
 
-void 
-Player::TakeTileOwnership(const int& tileIndex)
+void
+Player::TakeBills(int numBillsToTake)
 {
-	auto ownedTilesIter = mTilesOwned.find(tileIndex);
-	if (ownedTilesIter == mTilesOwned.end())
-		mTilesOwned.insert(tileIndex);
+	mNumBills -= numBillsToTake;
 }
 
 int
-Player::GetRawResourcesOnTile(const int& tileIndex) const
+Player::GetNumBills() const
 {
-	const auto& iter = mResourcesCount.find(tileIndex);
-	if (iter != mResourcesCount.end())
-		return iter->second;
+	return mNumBills;
+}
 
-	return 0;
+int
+Player::GetPlayerID() const
+{
+	return mPlayerID;
+}
+
+void
+Player::AddTile(int tileID)
+{
+	mPlayerTileIDs.insert(tileID);
+}
+
+void
+Player::RemoveTile(int tileID)
+{
+	mPlayerTileIDs.erase(tileID);
 }
 
 bool
-Player::SetTimerLocation(const int& tileIndex, const int& harvestRate) 
+Player::OwnsTile(int tileID) const
 {
-	if (mTileTimer->IsBusy())
-		return false;
+	return mPlayerTileIDs.count(tileID) > 0;
+}
 
-	if (mTilesOwned.find(tileIndex) == mTilesOwned.end())
-	{
-		printf("Player %i does not own tile %i\n", mPlayerID, tileIndex);
-		return false;
-	}
-
-	mTimerLocation = tileIndex;
-	mHarvestRateAtTimer = harvestRate;
-	return true;
+TileIDSet
+Player::GetPlayerTileIDs() const
+{
+	return mPlayerTileIDs;
 }
 
 void
-Player::StartHarvest()
+Player::AddGameObject(GameObjectPtr obj)
 {
-	assert(!mTileTimer->IsBusy());
-
-	printf("Starting harvest..\n");
-	mTileTimer->OnTimerStart();
-	mIsHarvesting = true;
+	mPlayerObjects.insert(obj);
 }
 
 void
-Player::OnHarvestFinish()
+Player::RemoveGameObject(GameObjectPtr obj)
 {
-	mIsHarvesting = false;
-	mResourcesCount[mTimerLocation] += mHarvestRateAtTimer;
-
-	printf("Done Harvest. %i resources for tile %i\n", mResourcesCount[mTimerLocation], mTimerLocation);
+	mPlayerObjects.erase(obj);
 }
 
-void
-Player::OnNotify()
+GameObjectSet
+Player::GetGameObjects() const
 {
-	if (mIsHarvesting)
-	{
-		OnHarvestFinish();
-	}
+	return mPlayerObjects;
+}
+
+TimerObject&
+Player::GetTimer()
+{
+	return *mTimer;
 }

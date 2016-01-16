@@ -2,8 +2,6 @@
 
 #include <memory>
 
-class Board;
-
 struct AxialCoord
 {
 	int r, q;
@@ -43,28 +41,6 @@ namespace std {
 	};
 }
 
-class TileSelection
-{
-public:
-	TileSelection();
-
-	void SetBoard(const Board* board);
-	void Update(const int& tileIndex);
-	void Update(const AxialCoord& tilePos);
-	void Clear();
-	bool IsValid() const;
-
-	int GetSelectionIndex() const;
-	AxialCoord GetSelectionPos() const;
-
-private:
-	const Board* mBoardInstance;
-	int mTileIndex;
-	AxialCoord mTilePos;
-	bool mIsValid;
-
-};
-
 struct Color
 {
 	float r, g, b;
@@ -73,12 +49,24 @@ struct Color
 	Color(float r_in, float g_in, float b_in) : r(r_in), g(g_in), b(b_in) { }
 };
 
-enum ResourceType
+enum class ResourceType
 {
 	WHEAT,
 	ORE,
 	TREE,
 	GRASS,
 	WATER,
-	NUMTYPES
+	NUMTYPES,
+	INVALID
+};
+
+enum class BuildingType
+{
+	FORGE,
+	HARBOR,
+	SAWMILL,
+	STABLE,
+	FORT,
+	NUMTYPES,
+	INVALID
 };

@@ -1,44 +1,44 @@
 #pragma once
 
 #include <memory>
-#include <unordered_map>
 #include <unordered_set>
 
-#include "Observer.h"
+class GameObject;
+class TimerObject;
+enum class GameObjectType;
 
-class TileTimer;
+using GameObjectPtr = std::shared_ptr < GameObject >;
+using GameObjectSet = std::unordered_set < GameObjectPtr >;
+using TileIDSet = std::unordered_set < int >;
+using TimerPtr = std::unique_ptr < TimerObject > ;
 
-class Player : public Observer
+class Player
 {
 public:
-	Player(const int& id);
-	~Player();
+	Player(int playerID, TimerPtr timer, int numBills);
 
-	void PrintInfo() const;
+	int GetPlayerID() const;
 
-	void Tick();
+	void AddBills(int numBillsToAdd);
+	void TakeBills(int numBillsToTake);
+	int GetNumBills() const;
 
-	virtual void OnNotify();
+	void AddTile(int tileID);
+	void RemoveTile(int tileID);
+	bool OwnsTile(int tileID) const;
+	TileIDSet GetPlayerTileIDs() const;
 
-	void TakeTileOwnership(const int& tileIndex);
-	const std::unordered_set<int>& GetTilesOwned() const { return mTilesOwned; }
-	int GetRawResourcesOnTile(const int& tileIndex) const;
-	bool SetTimerLocation(const int& tileIndex, const int& harvestRate);
+	void AddGameObject(GameObjectPtr obj);
+	void RemoveGameObject(GameObjectPtr obj);
+	GameObjectSet GetGameObjects() const;
 
-	void StartHarvest();
-	void OnHarvestFinish();
+	TimerObject& GetTimer();
 
 private:
 	int mPlayerID;
 	int mNumBills;
-	bool mIsHarvesting;
 
-	int mTimerLocation;
-	int mHarvestRateAtTimer;
-	std::unique_ptr<TileTimer> mTileTimer;
-
-	std::unordered_map<int, int> mResourcesCount; //tile id -> count
-
-	std::unordered_set<int> mTilesOwned;
-	
+	TileIDSet mPlayerTileIDs;
+	GameObjectSet mPlayerObjects;
+	TimerPtr mTimer;
 };

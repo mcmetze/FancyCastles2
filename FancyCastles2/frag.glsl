@@ -2,9 +2,11 @@
 
 in vec3 fColor;
 in vec2 fTexcoord;
+
 out vec4 fragColor;
 
 uniform sampler2D tileOutlineTex;
+
 void main()
 {
    vec4 outlineColor = texture(tileOutlineTex, fTexcoord);

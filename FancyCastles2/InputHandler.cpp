@@ -3,7 +3,6 @@
 #include "InputHandler.h"
 
 #include "Commands.h"
-#include "GameManager.h"
 
 static void KeyboardCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
@@ -37,9 +36,17 @@ InputHandler::InputHandler(GLFWwindow* window)
 	mKeyboardInputMap[GLFW_KEY_RIGHT] = std::make_unique<MoveSelectionCommand>(0, 1);
 	mKeyboardInputMap[GLFW_KEY_UP] = std::make_unique<MoveSelectionCommand>(-1, 0);
 	mKeyboardInputMap[GLFW_KEY_DOWN] = std::make_unique<MoveSelectionCommand>(1, 0);
-	mKeyboardInputMap[GLFW_KEY_SPACE] = std::make_unique<HarvestRawResourceCommand>();
-	mKeyboardInputMap[GLFW_KEY_1] = std::make_unique<BuildCommand>();
+	mKeyboardInputMap[GLFW_KEY_SPACE] = std::make_unique<HarvestCommand>();
+	mKeyboardInputMap[GLFW_KEY_B] = std::make_unique<BuildCommand>();
 	mKeyboardInputMap[GLFW_KEY_ESCAPE] = std::make_unique<ExitGameCommand>();
+
+	//TODO- there must be a better way
+	mKeyboardInputMap[GLFW_KEY_1] = std::make_unique<ChangePlayerCommand>(1);
+	mKeyboardInputMap[GLFW_KEY_2] = std::make_unique<ChangePlayerCommand>(2);
+	mKeyboardInputMap[GLFW_KEY_3] = std::make_unique<ChangePlayerCommand>(3);
+	mKeyboardInputMap[GLFW_KEY_4] = std::make_unique<ChangePlayerCommand>(4);
+	mKeyboardInputMap[GLFW_KEY_5] = std::make_unique<ChangePlayerCommand>(5);
+
 
 	mMouseInputMap[GLFW_MOUSE_BUTTON_LEFT] = std::make_unique<PickSelectionCommand>();
 }
@@ -49,23 +56,17 @@ InputHandler::~InputHandler()
 }
 
 void
-InputHandler::SetGameManager(GameManager* gm)
-{
-	mGameManager = gm;
-}
-
-void
-InputHandler::HandleKeyPress(int key) const
+InputHandler::HandleKeyPress(int key)
 {
 	const auto command = mKeyboardInputMap.find(key);
 	if (command != mKeyboardInputMap.end())
-		command->second->Execute(mGameManager);
+		Notify(command->second.get());
 }
 
 void 
-InputHandler::HandleMouseClick(int button) const
+InputHandler::HandleMouseClick(int button)
 {
 	const auto command = mMouseInputMap.find(button);
 	if (command != mMouseInputMap.end())
-		command->second->Execute(mGameManager);
+		Notify(command->second.get());
 }

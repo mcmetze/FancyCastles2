@@ -1,24 +1,22 @@
 #include <algorithm>
 #include <cassert>
 #include <ctime>
-#include <queue>
 
 #include "Board.h"
 
-Board::Board():
-	  mNumTiles(0)
+Board::Board(): mNumTiles(0)
 	, mMapRadius(0)
 	, mBoard()
 {
 }
 
 int 
-Board::ComputeNextHexagonalNumber(const int& curNumTiles)
+Board::ComputeNextHexagonalNumber(int seed)
 {
 	//equation from wikipedia on centered hexagonal numbers
 	int mapRadius = 2;
 	int hexagonalNumber = 7;
-	while (curNumTiles > hexagonalNumber)
+	while (seed > hexagonalNumber)
 	{
 		++mapRadius;
 		hexagonalNumber = (3 * mapRadius)*(mapRadius - 1) + 1;
@@ -29,17 +27,17 @@ Board::ComputeNextHexagonalNumber(const int& curNumTiles)
 }
 
 void 
-Board::MakeBoard(const int& numTilesPerType)
+Board::MakeBoard(int numTilesPerType)
 {
 	//make one of each type of tile for each player
 	//then add water tiles until there is enough to make the board a hex
-	const auto curNumTiles = (NUMTYPES)*numTilesPerType;
+	const auto curNumTiles = static_cast<int>(ResourceType::NUMTYPES)*numTilesPerType;
 	mNumTiles = ComputeNextHexagonalNumber(curNumTiles);
 	mTiles.reserve(mNumTiles);
 
 	CreateTiles(numTilesPerType);
 	ShuffleTiles();
-	ConnectTiles();
+	ArrangeTiles();
 }
 
 void 
@@ -48,7 +46,7 @@ Board::ShuffleTiles()
 	srand(time(nullptr));
 
 	//fisher yates shuffle to randomize the tiles in the tile list
-	for (int i = mNumTiles - 1; i > 0; --i)
+	for (int i = mNumTiles - 1; i >= 0; --i)
 	{
 		auto swapPos = rand() % (i + 1);
 		mTiles[i].swap(mTiles[swapPos]);
@@ -56,29 +54,31 @@ Board::ShuffleTiles()
 }
 
 void 
-Board::CreateTiles(const int& numTilesPerType)
+Board::CreateTiles(int numTilesPerType)
 {
 	//make a tile for each type for each player and add it to the list of tiles
-	for (int curType = WHEAT; curType < WATER; ++curType)
+	const int firstResourceType = static_cast<int>(ResourceType::WHEAT);
+	const int lastResourceType = static_cast<int>(ResourceType::WATER);
+	for (auto curType = firstResourceType; curType < lastResourceType; ++curType)
 	{
-		ResourceType curResource = static_cast<ResourceType>(curType);
+		const auto curResource = static_cast<ResourceType>(curType);
 		for (int curTile = 0; curTile < numTilesPerType; ++curTile)
 		{
-			mTiles.emplace_back( std::make_unique<HexTile>(curResource, mTiles.size()) );
+			mTiles.emplace_back( std::make_unique<Tile>(curResource, mTiles.size()) );
 		}
 	}
 
 	//the remaining tiles should be water
 	while (mTiles.size() < mNumTiles)
 	{
-		mTiles.emplace_back( std::make_unique<HexTile>(WATER, mTiles.size()) );
+		mTiles.emplace_back( std::make_unique<Tile>(ResourceType::WATER, mTiles.size()) );
 	}
 
 	assert(mNumTiles == mTiles.size());
 }
 
 void 
-Board::ConnectTiles()
+Board::ArrangeTiles()
 {
 	//Create the coordinates for the board to make a hexagonal
 	// shape and map them to the index of a tile in the tile list
@@ -96,16 +96,6 @@ Board::ConnectTiles()
 	}
 }
 
-void 
-Board::SetTileOwner(const int& tileID, const int& playerID)
-{
-	assert(tileID >= 0 && tileID < mNumTiles);
-	if (mTiles[tileID]->GetTileType() == WATER)
-		return;
-
-	mTiles[tileID]->SetTileOwner(playerID);
-}
-
 bool 
 Board::IsPositionValid(const AxialCoord& position) const
 {
@@ -114,19 +104,30 @@ Board::IsPositionValid(const AxialCoord& position) const
 			 abs(position.r + position.q) > mMapRadius);
 }
 
-AxialCoord 
-Board::GetTileCoord(const int& tileIndex) const
+bool 
+Board::IsTileValid(int tileID) const
 {
-	const auto iter = mBoard.find(tileIndex);
+	return tileID >= 0 && tileID < mNumTiles;
+}
+
+int
+Board::GetNumTiles() const
+{
+	return mNumTiles;
+}
+
+AxialCoord 
+Board::GetTileCoord(int tileID) const
+{
+	const auto iter = mBoard.find(tileID);
 	assert(iter != mBoard.end());
 	return iter->second;
 }
 
 ResourceType 
-Board::GetTileType(const int& tileIndex) const
+Board::GetTileType(int tileID) const
 {
-	assert(tileIndex >= 0 && tileIndex < mNumTiles);
-	return mTiles[tileIndex]->GetTileType();
+	return mTiles[tileID]->GetTileType();
 }
 
 int
@@ -138,76 +139,14 @@ Board::GetTileIndex(const AxialCoord& coord) const
 }
 
 int
-Board::GetTileOwner(const int& tileIndex) const
+Board::GetHarvestRate(int tileID) const
 {
-	assert(tileIndex >= 0 && tileIndex < mNumTiles);
-	return mTiles[tileIndex]->GetTileOwnerID();
+	return mTiles[tileID]->GetHarvestRate();
 }
-
-int
-Board::GetHarvestRate(const int& tileIndex) const
-{
-	assert(tileIndex >= 0 && tileIndex < mNumTiles);
-	return mTiles[tileIndex]->GetHarvestRate();
-}
-
-static const std::vector<AxialCoord> adjacentOffsets =
-{
-	{ -1, 0 }, { -1, 1 }, { 0, -1 },
-	{ 1, 0 }, { 1, -1 }, { 0, 1 }
-};
-
-std::unordered_set<int>
-Board::GetNeighbors(const int& tileIndex) const
-{
-	std::unordered_set<int> neighbors;
-	if (tileIndex < 0 || tileIndex > mNumTiles)
-		return neighbors;
-
-	const auto position = GetTileCoord(tileIndex);
-	for (auto& offset : adjacentOffsets)
-	{
-		AxialCoord neighbor = position + offset;
-		if ( IsPositionValid(neighbor) )
-			neighbors.insert(GetTileIndex(neighbor));
-	}
-
-	return neighbors;
-}
-
-std::unordered_set<int>
-Board::FindConnectedTilesWithSameOwner(const int& playerID, const int& source) const
-{
-	std::unordered_set<int> tilesVisited;
-	std::queue<int> tilesToVisit;
-	tilesToVisit.push(source);
-
-	while ( !tilesToVisit.empty() )
-	{
-		const auto& curTile = tilesToVisit.front();
-		tilesToVisit.pop();
-		tilesVisited.insert(curTile);
-
-		for (const auto& neighbor : GetNeighbors(curTile))
-		{
-			if ( GetTileOwner(neighbor) == playerID )
-			{
-				if ( tilesVisited.find(neighbor) == tilesVisited.end() )
-					tilesToVisit.push(neighbor);
-			}
-		}
-	}
-
-	return tilesVisited;
-}
-
-
-
-
 
 void
-Board::PrintTileInfo(const int& tileIndex) const
+Board::SetHarvestRate(int tileID, int newRate)
 {
-	assert(tileIndex >= 0 && tileIndex < mNumTiles);
-	mTiles[tileIndex]->PrintTileInfo();
+	assert(tileID >= 0 && tileID < mNumTiles);
+	return mTiles[tileID]->SetHarvestRate(newRate);
 }

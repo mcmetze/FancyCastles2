@@ -2,27 +2,24 @@
 
 #include "TileTraits.h"
 
-class HexTile
+class Tile
 {
 
 public:
-	HexTile() : mHarvestRate(0), mTileType(WATER), mTileOwnerID(-1){ }
-	HexTile(ResourceType type, int tileID);
+	Tile(ResourceType type, int tileID);
 
 	ResourceType GetTileType() const;
-	
-	int GetTileOwnerID() const;
-	void SetTileOwner(unsigned int playerID);
+
+	int GetTileID() const;
 
 	int GetHarvestRate() const;
-	void SetHarvestRate(const int& newRate);
-
-	void PrintTileInfo() const;
+	void SetHarvestRate(int newRate);
 
 private:
-
-	int mHarvestRate;
+	//invariant properties
 	ResourceType mTileType;
-	int mTileOwnerID;
 	int mTileID;
+	
+	//variant properties
+	int mHarvestRate;
 };
